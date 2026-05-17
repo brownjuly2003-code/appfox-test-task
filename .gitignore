@@ -1,0 +1,12 @@
+.env
+.bot_token.txt
+.llm_cache/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+data/output/*.csv
+data/output/*.md
+data/output/raw_cleaned.json
+data/seeds.yaml.bak
+data/state/
