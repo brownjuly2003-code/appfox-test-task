@@ -40,7 +40,7 @@ run.py
 | **Замкнутый цикл расширения** | `gap.diff_with_previous` сравнивает текущие центроиды с сохранённым ядром (cosine ≥0.75 = existing/shifted, иначе new); `diff_with_competitors` — vs категории конкурентов | `gap.py` |
 | **Каннибализация** | для каждого кластера: max(cosine) с другими центроидами (`fill_diagonal(0)`) → отрицательный вес в Priority Score | `output.py:build_decision_rows` |
 | **Управление: UI или Telegram-бот** | `bot/tg.py`: `/run` (фон), `/status` (текущий шаг), `/export csv\|md\|queries\|state\|raw`, `/seeds`, `/upload_seeds` (replace через caption) | `bot/tg.py` |
-| **Иерархия агентов** | flat pipeline (collect → clean → cluster → label → gap → score → output) | `run.py` |
+| **Иерархия агентов** | LangGraph `StateGraph` с supervisor-узлами (`agents/graph.py`): collect → clean → [yield_guard] → cluster → [size_guard] → label → merge → gap → output. Гарды принимают однократное adaptive-решение (re-collect с расширенными modifiers / re-cluster с relaxed threshold). Flat-CLI `run.py` сохранён как baseline. | `agents/graph.py` |
 
 ## Запуск
 
@@ -51,12 +51,52 @@ pip install -r requirements.txt
 copy .env.example .env  # вписать MISTRAL_API_KEY (+ опц. TG_BOT_TOKEN)
 python run.py --config data/seeds.yaml --out data/output
 
+# LangGraph supervisor (адаптивные ретраи при низкой выживаемости/мало кластеров):
+python -m agents.cli --config data/seeds.yaml --out data/output
+
 # с KeyCollector экспортом (real volume):
 python run.py --keycollector-csv keys.csv
 
 # Telegram-бот:
 python -m bot.tg
 ```
+
+## Supervisor (LangGraph)
+
+`agents/graph.py` собирает `StateGraph` с двумя условными вершинами-гардами:
+
+```
+collect → clean → yield_guard ─┐
+                          │    │
+                          │    └─→ yield_decision → collect  (1 retry: расширить modifiers)
+                          ▼
+                      cluster → size_guard ─┐
+                                    │       │
+                                    │       └─→ size_decision → cluster (1 retry: relax threshold)
+                                    ▼
+                                  label → merge → gap → output → END
+```
+
+**yield_guard** (`agents/graph.py:yield_guard`): если после `clean` выживаемость <30% (`YIELD_MIN_RATE`), супервайзер объединяет текущие modifiers с `BROADER_MODIFIERS` и пере-`collect`'ит — однократно (`MAX_COLLECT_RETRIES=1`).
+
+**size_guard** (`agents/graph.py:size_guard`): если после `cluster` получилось <3 кластеров (`MIN_CLUSTERS_AFTER_CLUSTER`), threshold ослабляется на `THRESHOLD_RELAX_DELTA=0.10` и кластеризация повторяется — тоже один раз.
+
+Каждое решение пишется в `state["decisions"]`, виден в выводе CLI:
+```
+Decision log
+  • collect: 87 запросов (modifiers=0)
+  • clean: kept 18/87
+  • supervisor: yield ниже 30% → расширил modifiers до 8
+  • collect: 142 запросов (modifiers=8)
+  • clean: kept 96/142
+  • cluster: 16 (threshold=0.20)
+  • label: done
+  • merge: 16 → 14
+  • gap: 3 новых vs prev, 21 competitor pages
+  • output: 14 rows → data/output/decisions.csv
+```
+
+Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же, что и в `run.py`. Тесты: `tests/test_supervisor.py` (9 кейсов: компиляция графа, оба гарда независимо, оба end-to-end с замоканными nodes).
 
 Параметры:
 - `--cluster-threshold 0.20` — мельче кластеры (дефолт)
