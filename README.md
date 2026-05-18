@@ -119,7 +119,7 @@ Stubs для платных API (`NotImplementedError` с инструкцией
 /upload_seeds   (caption: `confirm`) — заменить seeds.yaml после YAML-валидации
 ```
 
-**ACL**: deny-by-default. Без `TG_ALLOWED_CHAT_IDS=12345,67890` в `.env` все запросы игнорируются — никаких info-leaks для случайных пользователей. У Юлии chat_id `432751211` уже в `.env`.
+**ACL**: deny-by-default. Без `TG_ALLOWED_CHAT_IDS=12345,67890` в `.env` все запросы игнорируются — никаких info-leaks для случайных пользователей.
 
 **Стек**: чистый `requests` long-polling, не python-telegram-bot. На Win11 httpx-default IPv6-first вешает `bot.initialize()` на `get_me` (`telegram.error.TimedOut` через 5 минут). С requests тайм-аут предсказуемый, IPv4-резолв стабильный, кода меньше.
 

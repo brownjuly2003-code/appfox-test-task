@@ -10,3 +10,5 @@ data/output/*.md
 data/output/raw_cleaned.json
 data/seeds.yaml.bak
 data/state/
+logs/
+PLAN.md
