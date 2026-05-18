@@ -19,8 +19,8 @@ GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "mistral-small-latest")
 
 
-def _cache_key(provider: str, model: str, system: str, user: str, temperature: float) -> str:
-    payload = f"{provider}|{model}|{temperature}|{system}|||{user}"
+def _cache_key(provider: str, model: str, system: str, user: str, temperature: float, max_tokens: int) -> str:
+    payload = f"{provider}|{model}|{temperature}|{max_tokens}|{system}|||{user}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -133,30 +133,36 @@ def chat(
 ) -> str:
     provider = (provider or os.getenv("LLM_PROVIDER", "mistral")).lower()
     model = model or DEFAULT_MODEL
-    key = _cache_key(provider, model, system, user, temperature)
+    primary_key = _cache_key(provider, model, system, user, temperature, max_tokens)
     if cache:
-        cached = _cache_get(key)
+        cached = _cache_get(primary_key)
         if cached is not None:
             return cached
     started = time.time()
+    actual_provider = provider
+    actual_model = model
     try:
         if provider == "mistral":
             out = _call_mistral(model, system, user, temperature, max_tokens)
         else:
             out = _call_groq(model, system, user, temperature, max_tokens)
+        cache_key = primary_key
     except LLMError:
-        # try fallback once
+        # try fallback once — cache under the FALLBACK key, not primary
         if provider == "mistral":
-            out = _call_groq("llama-3.3-70b-versatile", system, user, temperature, max_tokens)
-            provider = "groq-fallback"
+            actual_provider = "groq-fallback"
+            actual_model = "llama-3.3-70b-versatile"
+            out = _call_groq(actual_model, system, user, temperature, max_tokens)
         else:
-            out = _call_mistral("mistral-small-latest", system, user, temperature, max_tokens)
-            provider = "mistral-fallback"
+            actual_provider = "mistral-fallback"
+            actual_model = "mistral-small-latest"
+            out = _call_mistral(actual_model, system, user, temperature, max_tokens)
+        cache_key = _cache_key(actual_provider, actual_model, system, user, temperature, max_tokens)
     if cache:
         _cache_set(
-            key,
+            cache_key,
             out,
-            {"provider": provider, "model": model, "elapsed_s": round(time.time() - started, 2)},
+            {"provider": actual_provider, "model": actual_model, "elapsed_s": round(time.time() - started, 2)},
         )
     return out
 

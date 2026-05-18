@@ -57,10 +57,15 @@ def api(method: str, **kwargs):
     url = API_BASE.format(token=TOKEN, method=method)
     try:
         r = requests.post(url, timeout=35, **kwargs)
-        return r.json()
     except requests.RequestException as e:
         print(f"[api:err] {method}: {e}", flush=True)
         return {"ok": False, "error": str(e)}
+    try:
+        return r.json()
+    except ValueError as e:
+        body = (r.text or "")[:200]
+        print(f"[api:json-err] {method} status={r.status_code}: {e}; body={body!r}", flush=True)
+        return {"ok": False, "error": f"non-json response (status={r.status_code})"}
 
 
 def send_msg(chat_id: int, text: str, parse_mode: str | None = None):
@@ -107,15 +112,23 @@ def _run_pipeline_thread(chat_id: int):
         "--config", str(SEEDS_PATH),
         "--out", str(OUTPUT_DIR),
     ]
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(PROJECT_ROOT),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(PROJECT_ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except (OSError, ValueError) as e:
+        STATE.status = "error"
+        STATE.step = f"launch failed: {type(e).__name__}"
+        STATE.finished_at = time.time()
+        STATE.returncode = -1
+        send_msg(chat_id, f"Не удалось запустить пайплайн: {type(e).__name__}: {e}")
+        return
     assert proc.stdout
     for line in proc.stdout:
         line = line.rstrip()
@@ -233,10 +246,32 @@ def cmd_upload_seeds(chat_id: int, msg: dict):
     except Exception as e:
         send_msg(chat_id, f"Невалидный YAML: {e}")
         return
-    if SEEDS_PATH.exists():
-        SEEDS_PATH.replace(SEEDS_PATH.with_suffix(".yaml.bak"))
-    SEEDS_PATH.write_bytes(data)
-    send_msg(chat_id, f"seeds.yaml обновлён ({len(data)} байт). /run для прогона.")
+    # Atomic replace under RUN_LOCK so /run cannot read mid-swap.
+    # Write to .tmp, then os.replace into place; only after success rotate .bak.
+    if not RUN_LOCK.acquire(blocking=False):
+        send_msg(chat_id, "Пайплайн сейчас запущен — дождись /status done и пришли seeds.yaml ещё раз.")
+        return
+    try:
+        tmp_path = SEEDS_PATH.with_suffix(".yaml.new")
+        bak_path = SEEDS_PATH.with_suffix(".yaml.bak")
+        try:
+            tmp_path.write_bytes(data)
+            if SEEDS_PATH.exists():
+                # write current seeds.yaml to .bak (copy, не move, чтобы активный конфиг не исчезал даже на миллисекунду)
+                bak_path.write_bytes(SEEDS_PATH.read_bytes())
+            os.replace(tmp_path, SEEDS_PATH)
+        except OSError as e:
+            # cleanup tmp if it leaked
+            try:
+                if tmp_path.exists():
+                    tmp_path.unlink()
+            except OSError:
+                pass
+            send_msg(chat_id, f"Не удалось обновить seeds.yaml: {type(e).__name__}: {e}")
+            return
+        send_msg(chat_id, f"seeds.yaml обновлён ({len(data)} байт). /run для прогона.")
+    finally:
+        RUN_LOCK.release()
 
 
 COMMANDS = {
