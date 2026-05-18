@@ -241,9 +241,9 @@ footer a:hover{border-bottom-color:var(--ink)}
     <div>
       <div class="scope" data-l="ru">тесты</div>
       <div class="scope" data-l="en">tests</div>
-      <div class="hg-num num">31 <span class="sub">/ 31</span></div>
-      <div class="hg-lab" data-l="ru">Все автотесты (<span class="term" data-tip="Стандартный инструмент автотестов в Python.">pytest</span>) проходят. Одиннадцать из них — про supervisor: guards, threshold direction, retry budgets, end-to-end.</div>
-      <div class="hg-lab" data-l="en">All <span class="term" data-tip="The standard Python test runner.">pytest</span> cases pass. Eleven exercise supervisor: guards, threshold direction, retry budgets, end-to-end.</div>
+      <div class="hg-num num">42 <span class="sub">/ 42</span></div>
+      <div class="hg-lab" data-l="ru">Все автотесты (<span class="term" data-tip="Стандартный инструмент автотестов в Python.">pytest</span>) проходят. Тринадцать — про supervisor: guards, threshold direction, retry budgets, end-to-end. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку.</div>
+      <div class="hg-lab" data-l="en">All <span class="term" data-tip="The standard Python test runner.">pytest</span> cases pass. Thirteen exercise supervisor: guards, threshold direction, retry budgets, end-to-end. Nine cover SEO meta: length caps, intent routing, LLM-error fallback.</div>
     </div>
   </div>
 
@@ -255,10 +255,10 @@ footer a:hover{border-bottom-color:var(--ink)}
     </div>
 
     <div class="sec-lede" data-l="ru">
-      <p>Шесть шагов превращают сырые запросы и описание бизнеса в карту решений по страницам. LLM включается только там, где правил недостаточно — определить намерение и назвать группу. Внешние источники (autosuggest, конкуренты) дают свежий вход; всё, что делается внутри pipeline после сбора — детерминированно.</p>
+      <p>Семь шагов превращают сырые запросы и описание бизнеса в карту решений по страницам. LLM включается только там, где правил недостаточно — определить намерение, назвать группу и собрать SEO-мету с брифом копирайтеру. Внешние источники (autosuggest, конкуренты) дают свежий вход; всё, что делается внутри pipeline после сбора — детерминированно.</p>
     </div>
     <div class="sec-lede" data-l="en">
-      <p>Six steps turn raw queries and a business spec into a page-decision map. LLM kicks in only where rules can't decide — intent classification and group labels. External sources (autosuggest, competitors) provide fresh input; everything downstream of collection is deterministic.</p>
+      <p>Seven steps turn raw queries and a business spec into a page-decision map. LLM kicks in only where rules can't decide — intent classification, group labels and SEO meta + copy brief. External sources (autosuggest, competitors) provide fresh input; everything downstream of collection is deterministic.</p>
     </div>
 
     <div class="pipe">
@@ -291,6 +291,11 @@ footer a:hover{border-bottom-color:var(--ink)}
         <div class="step"><b>06</b> <span data-l="ru">Поиск пробелов</span><span data-l="en">Gap</span></div>
         <div class="lab" data-l="ru">Замкнутый цикл: новые группы сравниваются с тем, что уже есть на сайте и у конкурентов. Возвращает обновлённую таблицу — какие группы стоит добавить, какие расширить, какие убрать.</div>
         <div class="lab" data-l="en">Closed loop: new clusters compared against current site + competitor pages. Returns an updated decision table — what to add, expand, drop.</div>
+      </div>
+      <div>
+        <div class="step"><b>07</b> <span data-l="ru">SEO-мета</span><span data-l="en">SEO meta</span></div>
+        <div class="lab" data-l="ru">Для каждой «Создать»-группы — <b>title / H1 / description</b> с проверкой длин и intent-aware промптом (для коммерческой — призыв к действию, для проблемной — вопросительная форма), плюс бриф копирайтеру: аудитория, H2-структура, тон, ключевые запросы. Файл на каждую группу в <code class="mono">briefs/</code>. Отключается флагом <code class="mono">--no-seo</code>.</div>
+        <div class="lab" data-l="en">For every "Create" cluster — <b>title / H1 / description</b> with length checks and intent-aware prompt (commercial → CTA, problem → interrogative title), plus a copywriter brief: audience, H2 structure, tone, target queries. One file per cluster in <code class="mono">briefs/</code>. Disabled via <code class="mono">--no-seo</code>.</div>
       </div>
     </div>
   </section>
@@ -406,8 +411,8 @@ footer a:hover{border-bottom-color:var(--ink)}
     <div class="trust">
       <div>
         <div class="name">pytest</div>
-        <div class="val" data-l="ru"><b class="num">31 / 31</b> проходят. Одиннадцать тестов — про supervisor: компиляция графа, обе guard-функции, направление threshold (регрессия 2026-05-18), retry-бюджеты, end-to-end с подменёнными узлами. Остальные 20 — про правила, матчинг и склейку кластеров.</div>
-        <div class="val" data-l="en"><b class="num">31 / 31</b> pass. Eleven exercise supervisor: graph compile, both guards, threshold direction (2026-05-18 regression fix), retry budgets, end-to-end with mocked nodes. Twenty cover rules, matching, cluster merging.</div>
+        <div class="val" data-l="ru"><b class="num">42 / 42</b> проходят. Тринадцать тестов — про supervisor: компиляция графа, обе guard-функции, направление threshold (регрессия 2026-05-18), retry-бюджеты, end-to-end с подменёнными узлами, новый <code class="mono">seo_node</code>. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Остальные 20 — про правила, матчинг и склейку кластеров.</div>
+        <div class="val" data-l="en"><b class="num">42 / 42</b> pass. Thirteen exercise supervisor: graph compile, both guards, threshold direction (2026-05-18 regression fix), retry budgets, end-to-end with mocked nodes, new <code class="mono">seo_node</code>. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Twenty cover rules, matching, cluster merging.</div>
       </div>
       <div>
         <div class="name" data-l="ru">демо-прогон</div>
@@ -450,8 +455,8 @@ footer a:hover{border-bottom-color:var(--ink)}
       <p data-l="ru"><b>Различение кластеров по поисковой выдаче (<span class="term" data-tip="Страница выдачи поисковика — Search Engine Results Page.">SERP</span>) — пока не реализовано.</b> В брифе упоминается как future. Сейчас различаем группы по embeddings и label-склейке, не по выдаче Яндекса/Google.</p>
       <p data-l="en"><b><span class="term" data-tip="Search Engine Results Page.">SERP</span>-based cluster differentiation</b> is in the brief as future work. Currently clusters are distinguished by embeddings and label merge, not by live search results.</p>
 
-      <p data-l="ru"><b>Генерация SEO-мета (title / H1 / description для каждой группы) — следующий шаг.</b> Кластер сейчас выдаёт решение по странице, а не готовый текст наполнения.</p>
-      <p data-l="en"><b>SEO meta generation</b> (title / H1 / description per cluster) — next step. The current output is a page decision, not page content.</p>
+      <p data-l="ru"><b>SEO-мета и бриф копирайтеру — собираются в шаге 07.</b> Title / H1 / description с проверкой длин и intent-aware промптом, плюс markdown-бриф с H2-структурой в <code class="mono">briefs/{slug}.md</code>. Post-indexing verify (GSC → CTR/position через 14/30 дней после публикации) — следующий шаг, нужен OAuth.</p>
+      <p data-l="en"><b>SEO meta and copywriter brief land in step 07.</b> Title / H1 / description with length checks and intent-aware prompts, plus a markdown brief with H2 structure under <code class="mono">briefs/{slug}.md</code>. Post-indexing verify (GSC → CTR/position 14/30 days after publication) is next; the blocker is OAuth.</p>
 
       <p data-l="ru"><b>В демо один домен (мебель).</b> Универсальность под другие тематики не проверена — узкие seeds.yaml-конфиги переключают модификаторы и intent-правила, но валидации на e-commerce других вертикалей нет.</p>
       <p data-l="en"><b>Single demo vertical (furniture).</b> Generalisation across verticals is untested — modifier lists and intent rules swap by config, but no cross-domain validation yet.</p>

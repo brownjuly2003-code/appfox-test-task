@@ -14,7 +14,8 @@ core/
   cluster.py    # multilingual embeddings → AgglomerativeClustering + facet-split (product/geo)
   priority.py   # формула Priority Score из ТЗ + metrics provider (real|proxy|unknown)
   gap.py        # closed-loop: vs previous_state, vs конкурентам; gap_status + competitor_coverage
-  output.py     # decisions.csv + decisions.md + queries.csv (per-query аудит) + Google Sheets
+  output.py     # decisions.csv + decisions.md + queries.csv (per-query аудит) + briefs/{slug}.md + Google Sheets
+  seo_meta.py   # title/H1/description + бриф копирайтеру (intent-aware промпты, LLM-cached)
   llm.py        # Mistral primary / Groq fallback / disk JSON-cache
 bot/
   tg.py         # Telegram бот: /run /status /export csv|md|queries|state /seeds /upload_seeds
@@ -35,7 +36,8 @@ data/
 | **Кластеризация** под страницы | `paraphrase-multilingual-MiniLM-L12-v2` + `AgglomerativeClustering(cosine, average)` + **facet-split** по product_type/geo/modifier (1 кластер = 1 страница) | `cluster.py` |
 | **Формула приоритета** из ТЗ | точная формула `0.25·sv + 0.20·bv + 0.20·ro + 0.15·im + 0.10·tg + 0.10·cg − 0.20·kd − 0.15·cr`; каждый фактор помечен `real`/`proxy`/`unknown` | `priority.py:score_cluster` |
 | **Карта посадочных** (existing/new/blog/FAQ/skip) | embedding-similarity к existing_pages (threshold 0.85) → Обновить; FAQ для problem/comparative; Создать статью для informational; Не брать для navigational | `priority.py:decide_action` |
-| **Output**: Кластер→Страница→Действие | CSV + Markdown + **queries.csv** (per-query: intent+keep+reason+cluster+action) + Google Sheets stub | `output.py` |
+| **Output**: Кластер→Страница→Действие | CSV + Markdown + **queries.csv** (per-query: intent+keep+reason+cluster+action) + **SEO-мета колонки** + **briefs/{slug}.md** + Google Sheets stub | `output.py` |
+| **SEO meta + page brief** | для каждого «Создать»-кластера: title ≤60 / H1 ≤80 / description 140-160 + markdown-бриф 150-300 слов (audience, intent, H2-структура, тон, top-запросы); промпты intent-aware (commercial/informational/comparative/problem/local), кэш через `llm.chat(cache=True)`, опционально через `--no-seo` | `seo_meta.py` |
 | **Замкнутый цикл расширения** | `gap.diff_with_previous` сравнивает текущие центроиды с сохранённым ядром (cosine ≥0.75 = existing/shifted, иначе new); `diff_with_competitors` — vs категории конкурентов | `gap.py` |
 | **Каннибализация** | для каждого кластера: max(cosine) с другими центроидами (`fill_diagonal(0)`) → отрицательный вес в Priority Score | `output.py:build_decision_rows` |
 | **Управление: UI или Telegram-бот** | `bot/tg.py`: `/run` (фон), `/status` (текущий шаг), `/export csv\|md\|queries\|state\|raw`, `/seeds`, `/upload_seeds` (replace через caption) | `bot/tg.py` |
@@ -78,7 +80,7 @@ collect → clean → yield_guard ─┐
                                     │       │
                                     │       └─→ size_decision → cluster (1 retry: relax threshold)
                                     ▼
-                                  label → merge → gap → output → END
+                                  label → merge → gap → seo → output → END
 ```
 
 **yield_guard** (`agents/graph.py:yield_guard`): если после `clean` выживаемость <30% (`YIELD_MIN_RATE`), супервайзер объединяет текущие modifiers с `BROADER_MODIFIERS` и пере-`collect`'ит — однократно (`MAX_COLLECT_RETRIES=1`).
@@ -94,7 +96,8 @@ Decision log
   • label: done
   • merge: 16 → 16
   • gap: 0 новых vs prev, 0 убрано, 18 competitor pages
-  • output: 16 rows → data/output/decisions.csv
+  • seo: 10 меты, 10 брифов
+  • output: 16 rows → data/output/decisions.csv, briefs/=10
 ```
 
 Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же. Тесты: `tests/test_supervisor.py` (11 кейсов: компиляция графа, оба гарда независимо, направление threshold-дельты у size_guard, threshold floor, оба end-to-end с замоканными nodes).
@@ -105,6 +108,7 @@ Decision log
 - `--no-split` — выключить facet-split (вернуть «толстые» кластеры)
 - `--no-merge` — выключить пост-merge дублей
 - `--skip-competitors` — без scraping конкурентов
+- `--no-seo` — без LLM-генерации SEO-меты и брифов (быстрее на ~30-60с)
 - `--keycollector-csv keys.csv` — импорт CSV из KeyCollector/TopVisor с volume → `score_mode` поднимается из `demo` в `mixed`
 - `--google-sheet-id <ID> --service-account-json sa.json` — экспорт результата в Google Sheet
 
@@ -198,8 +202,6 @@ Start-Process pythonw -ArgumentList "-m","bot.tg" -WorkingDirectory "D:\appfox_t
 | **Маржинальность** | `business_context.margin_map: {product_type: weight}` → множитель `business_value` |
 | **Наличие товаров** | join `cluster.slug ↔ catalog_feed.csv` (формат YML/feed) |
 | **Сезонность** | Google Trends API или Wordstat history → `trend_growth` |
-| **Title/H1/Description** | `core/seo_meta.py`: LLM по `cluster.label + intent + top_queries` |
-| **ТЗ на страницу** | `core/page_brief.py`: brief шаблон с H2-структурой по запросам |
 | **Post-indexing verify** | `core/verify.py`: GSC API → CTR/position 14/30 дней после публикации → ratchet |
 | **Иерархия агентов через LangGraph** | `agents/graph.py`: каждый core-модуль = node; supervisor с router'ом |
 
@@ -249,3 +251,13 @@ High / Medium:
 10. ~~`run.py` дублировал orchestration с `agents/nodes.py`~~ → УДАЛЁН, все фичи перенесены в `agents/cli.py`
 
 Tests: 20 → 31 pass (+ 11 supervisor tests).
+
+### v1.3 — SEO meta + page brief (2026-05-18)
+
+Закрыты 2 пункта из «Будущее» в исходном ТЗ:
+1. **Title / H1 / Description** — `core/seo_meta.py:generate_seo_meta`, intent-aware промпты на русском (commercial vs informational vs problem-FAQ vs comparative vs local). Лимиты `title ≤60`, `h1 ≤80`, `description 140-160` контролируются post-LLM, кэш через `llm.chat(cache=True)`.
+2. **Бриф копирайтеру** — `core/seo_meta.py:generate_page_brief`, markdown 150-300 слов: аудитория / интент / 3-5 H2-блоков / тон / top-5 запросов. Артефакт — `data/output/briefs/{slug}-{id}.md` на каждый «Создать»-кластер.
+
+В графе: новый узел `seo` между `gap` и `output`. `output_node` инжектит `seo_title`/`seo_h1`/`seo_description` в строки CSV/MD. CLI флаг `--no-seo` отключает шаг (быстрее на ~30-60с). На LLMError pipeline не падает — пустые поля.
+
+Tests: 31 → 42 pass (+9 в `test_seo_meta.py`, +2 в `test_supervisor.py`).

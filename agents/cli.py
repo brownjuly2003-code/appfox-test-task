@@ -39,6 +39,8 @@ def main() -> int:
     ap.add_argument("--no-merge", action="store_true")
     ap.add_argument("--skip-competitors", action="store_true",
                     help="Не скрейпить конкурентов (быстрый прогон).")
+    ap.add_argument("--no-seo", action="store_true",
+                    help="Не генерировать SEO-мету и брифы (быстрее на ~30-60с на 16 кластеров).")
     ap.add_argument("--keycollector-csv",
                     help="CSV из KeyCollector / TopVisor с volume — поднимает score_mode из demo в mixed.")
     ap.add_argument("--google-sheet-id",
@@ -79,6 +81,7 @@ def main() -> int:
         "metrics_by_query": metrics_by_query,
         "collect_retries": 0,
         "cluster_retries": 0,
+        "skip_seo": args.no_seo,
         "decisions": [],
     }
 
@@ -135,6 +138,8 @@ def main() -> int:
     console.print(f"QUERIES:  {final.get('queries_path')}")
     console.print(f"RAW:      {final.get('raw_path')}")
     console.print(f"STATE:    {final.get('state_path')}")
+    if final.get("briefs_dir"):
+        console.print(f"BRIEFS:   {final['briefs_dir']}/")
     return 0
 
 

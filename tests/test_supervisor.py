@@ -103,10 +103,67 @@ def test_size_guard_apply_threshold_floor():
     assert out["distance_threshold"] >= 0.05, "threshold не должен уходить ниже floor"
 
 
-def _make_cluster(cluster_id, label, intent, queries):
+def _make_cluster(cluster_id, label, intent, queries, slug=None):
     """Helper to make Cluster instances without importing inside test."""
     from core.cluster import Cluster
-    return Cluster(cluster_id=cluster_id, label=label, intent=intent, queries=queries)
+    c = Cluster(cluster_id=cluster_id, label=label, intent=intent, queries=queries)
+    c.slug = slug or f"slug-{cluster_id}"
+    return c
+
+
+def test_seo_node_skips_when_flag_set():
+    """skip_seo=True → seo_node возвращает пустые dict'ы и не зовёт LLM."""
+    from agents import nodes
+    state = {
+        "skip_seo": True,
+        "clusters": [_make_cluster(0, "test", "commercial", ["q1", "q2"])],
+        "business_context": {"vertical": "x"},
+        "existing_pages": [],
+        "metrics_by_cluster": {},
+        "decisions": [],
+    }
+    out = nodes.seo_node(state)
+    assert out["seo_meta"] == {}
+    assert out["page_briefs"] == {}
+
+
+def test_seo_node_only_for_create_actions(monkeypatch):
+    """seo_node генерит только для CREATE-action кластеров (по decide_action)."""
+    from agents import nodes
+
+    # 3 кластера: commercial → Создать, navigational → Не брать, informational → Создать статью
+    clusters = [
+        _make_cluster(0, "Угловые диваны", "commercial",
+                      ["угловой диван купить", "угловой диван цена"], slug="uglovye"),
+        _make_cluster(1, "Сайт компании", "navigational",
+                      ["официальный сайт диван"], slug="site"),
+        _make_cluster(2, "Как выбрать диван", "informational",
+                      ["как выбрать диван", "какой диван лучше"], slug="kak-vybrat"),
+    ]
+    called: list[int] = []
+    def fake_meta(c, biz):
+        called.append(c.cluster_id)
+        return {"title": f"T{c.cluster_id}", "h1": f"H{c.cluster_id}", "description": f"D{c.cluster_id}"}
+    def fake_brief(c, biz, url):
+        return f"## H2 для {c.cluster_id}\nтекст"
+    monkeypatch.setattr(nodes.seo_mod, "generate_seo_meta", fake_meta)
+    monkeypatch.setattr(nodes.seo_mod, "generate_page_brief", fake_brief)
+
+    state = {
+        "clusters": clusters,
+        "business_context": {"vertical": "мебель"},
+        "existing_pages": [],
+        "metrics_by_cluster": {},
+        "decisions": [],
+    }
+    out = nodes.seo_node(state)
+    # navigational → "Не брать" → пропущен
+    assert 1 not in out["seo_meta"]
+    assert 1 not in out["page_briefs"]
+    # commercial (cluster 0) и informational (cluster 2) — оба CREATE-actions
+    assert 0 in out["seo_meta"]
+    assert 2 in out["seo_meta"]
+    assert 1 not in called
 
 
 def test_end_to_end_with_mocked_nodes(monkeypatch, tmp_path):
@@ -187,6 +244,7 @@ def test_end_to_end_with_mocked_nodes(monkeypatch, tmp_path):
         "metrics_by_query": {},
         "collect_retries": 0,
         "cluster_retries": 0,
+        "skip_seo": True,  # тестируем supervisor-логику, не сетевой LLM
         "decisions": [],
     }
 
@@ -199,6 +257,7 @@ def test_end_to_end_with_mocked_nodes(monkeypatch, tmp_path):
     assert any(d.startswith("clean:") for d in log)
     assert any(d.startswith("cluster:") for d in log)
     assert any(d.startswith("output:") for d in log)
+    assert any(d.startswith("seo:") for d in log)
     # Артефакты должны быть на диске
     assert Path(final["csv_path"]).exists()
     assert Path(final["md_path"]).exists()
@@ -266,6 +325,7 @@ def test_end_to_end_yield_guard_fires(monkeypatch, tmp_path):
         "metrics_by_query": {},
         "collect_retries": 0,
         "cluster_retries": 0,
+        "skip_seo": True,
         "decisions": [],
     }
 

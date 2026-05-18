@@ -14,8 +14,15 @@ from core import cluster as cluster_mod
 from core import collect as collect_mod
 from core import gap as gap_mod
 from core import output as output_mod
+from core import seo_meta as seo_mod
+from core.llm import LLMError
+from core.priority import decide_action
 
 from .state import PipelineState
+
+# Какие action'ы из priority.decide_action считаем «создаём страницу с нуля» →
+# для них есть смысл генерить SEO-мету и бриф копирайтеру.
+CREATE_ACTIONS = {"Создать", "Создать FAQ", "Создать статью", "Гибридная страница"}
 
 
 def collect_node(state: PipelineState) -> dict[str, Any]:
@@ -124,6 +131,63 @@ def gap_node(state: PipelineState) -> dict[str, Any]:
     }
 
 
+def seo_node(state: PipelineState) -> dict[str, Any]:
+    """SEO-мета (title/H1/description) + бриф копирайтера для «Создать»-кластеров.
+
+    Опциональная фича: при `state["skip_seo"]=True` → noop. На LLMError тоже не
+    валим pipeline (фича не блокирующая), просто пропускаем кластер и логируем.
+
+    Расположение в графе — между gap и output: output_node читает seo_meta из
+    state и инжектит в CSV/MD строки.
+    """
+    if state.get("skip_seo"):
+        decisions = list(state.get("decisions", []))
+        decisions.append("seo: пропущено (--no-seo)")
+        return {"seo_meta": {}, "page_briefs": {}, "decisions": decisions}
+
+    biz = state["business_context"]
+    existing_pages = state.get("existing_pages", [])
+    metrics_by_cluster = state.get("metrics_by_cluster", {})
+
+    seo_meta: dict[int, dict[str, str]] = {}
+    page_briefs: dict[int, str] = {}
+    errors = 0
+
+    for c in state["clusters"]:
+        action, matched_url, _ = decide_action(
+            c, existing_pages,
+            page_embeddings=None, cluster_embedding=None,
+        )
+        if action not in CREATE_ACTIONS:
+            continue
+
+        slug = getattr(c, "slug", "") or ""
+        if action == "Создать статью":
+            recommended = f"/blog/{slug}/"
+        elif action == "Создать FAQ":
+            recommended = f"/faq/{slug}/"
+        else:
+            recommended = matched_url or f"/catalog/{slug}/"
+
+        try:
+            meta = seo_mod.generate_seo_meta(c, biz)
+            brief = seo_mod.generate_page_brief(c, biz, recommended)
+            if meta:
+                seo_meta[c.cluster_id] = meta
+            if brief:
+                page_briefs[c.cluster_id] = brief
+        except LLMError:
+            errors += 1
+            continue
+
+    decisions = list(state.get("decisions", []))
+    parts = [f"{len(seo_meta)} меты", f"{len(page_briefs)} брифов"]
+    if errors:
+        parts.append(f"{errors} LLM-ошибок (пропущены)")
+    decisions.append("seo: " + ", ".join(parts))
+    return {"seo_meta": seo_meta, "page_briefs": page_briefs, "decisions": decisions}
+
+
 def output_node(state: PipelineState) -> dict[str, Any]:
     """Финальная сборка decision rows + запись артефактов."""
     clusters = state["clusters"]
@@ -132,6 +196,8 @@ def output_node(state: PipelineState) -> dict[str, Any]:
     metrics_by_query = state.get("metrics_by_query", {})
     prev_diff = state.get("prev_diff", {})
     comp_diff = state.get("comp_diff", {})
+    seo_meta = state.get("seo_meta", {}) or {}
+    page_briefs = state.get("page_briefs", {}) or {}
 
     metrics_by_cluster: dict[int, dict[str, float]] = {}
     for c in clusters:
@@ -144,6 +210,7 @@ def output_node(state: PipelineState) -> dict[str, Any]:
         clusters,
         existing_pages,
         metrics_by_cluster=metrics_by_cluster,
+        seo_meta=seo_meta,
     )
     for r in rows:
         gi = prev_diff.get(r["cluster_id"], {})
@@ -163,6 +230,7 @@ def output_node(state: PipelineState) -> dict[str, Any]:
     raw_path.write_text(
         json.dumps(cleaned, ensure_ascii=False, indent=2), encoding="utf-8",
     )
+    briefs_dir = output_mod.write_page_briefs(clusters, page_briefs, out_dir / "briefs")
 
     state_file = state.get("state_file", "data/state/core.json")
     prev = gap_mod.load_state(state_file)
@@ -172,7 +240,8 @@ def output_node(state: PipelineState) -> dict[str, Any]:
     )
 
     decisions = list(state.get("decisions", []))
-    decisions.append(f"output: {len(rows)} rows → {csv_path}")
+    brief_msg = f", briefs/={len(page_briefs)}" if page_briefs else ""
+    decisions.append(f"output: {len(rows)} rows → {csv_path}{brief_msg}")
     return {
         "rows": rows,
         "metrics_by_cluster": metrics_by_cluster,
@@ -180,6 +249,7 @@ def output_node(state: PipelineState) -> dict[str, Any]:
         "md_path": str(md_path),
         "queries_path": str(queries_path),
         "raw_path": str(raw_path),
+        "briefs_dir": str(briefs_dir) if briefs_dir else "",
         "state_path": str(sp),
         "decisions": decisions,
     }

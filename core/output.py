@@ -23,14 +23,17 @@ def build_decision_rows(
     *,
     site_root: str = "",
     metrics_by_cluster: dict[int, dict] | None = None,
+    seo_meta: dict[int, dict[str, str]] | None = None,
 ) -> list[dict]:
     """Build decision map with embedding-based page matching + cannibalization scoring.
 
     metrics_by_cluster: optional dict cluster_id → {search_volume, keyword_difficulty, ...}
                         — реальные данные из Wordstat/Ahrefs если доступны.
+    seo_meta: optional dict cluster_id → {title, h1, description} от core.seo_meta.
     """
     rows: list[dict] = []
     metrics_by_cluster = metrics_by_cluster or {}
+    seo_meta = seo_meta or {}
 
     # Pre-compute centroids
     cluster_centroids = {c.cluster_id: _cluster_centroid(c) for c in clusters}
@@ -78,6 +81,7 @@ def build_decision_rows(
             metrics=metrics_by_cluster.get(c.cluster_id),
             cannibalization_risk=canniball,
         )
+        meta = seo_meta.get(c.cluster_id, {}) or {}
         rows.append(
             {
                 "cluster_id": c.cluster_id,
@@ -102,6 +106,10 @@ def build_decision_rows(
                 "matched_prev_label": "",
                 "new_queries": [],
                 "lost_queries": [],
+                # SEO-мета: пустые строки для не-create-кластеров (нет ключа в seo_meta)
+                "seo_title": meta.get("title", ""),
+                "seo_h1": meta.get("h1", ""),
+                "seo_description": meta.get("description", ""),
             }
         )
     rows.sort(key=lambda r: -r["priority"])
@@ -136,6 +144,7 @@ def write_csv(rows: list[dict], path: str | Path) -> Path:
         "page_similarity", "cannibal_risk",
         "gap_status", "competitor_coverage", "matched_prev_label",
         "new_queries_count", "lost_queries_count",
+        "seo_title", "seo_h1", "seo_description",
         "queries_sample",
     ]
     with path.open("w", newline="", encoding="utf-8") as f:
@@ -274,6 +283,18 @@ def write_markdown(rows: list[dict], path: str | Path) -> Path:
             f"{r['page_similarity']:.2f} | {r['cannibal_risk']:.2f} | "
             f"{r.get('gap_status','-')} | {r.get('competitor_coverage','-')} |"
         )
+    # SEO meta — отдельная таблица, только для кластеров где title не пустой
+    seo_rows = [r for r in rows if r.get("seo_title")]
+    if seo_rows:
+        lines.append("\n## SEO meta (для «Создать»-кластеров)\n")
+        lines.append("| # | Кластер | Title | H1 | Description |")
+        lines.append("|---|---|---|---|---|")
+        for r in seo_rows:
+            title = (r.get("seo_title") or "").replace("|", "\\|")
+            h1 = (r.get("seo_h1") or "").replace("|", "\\|")
+            desc = (r.get("seo_description") or "").replace("|", "\\|")
+            lines.append(f"| {r['cluster_id']} | {r['cluster']} | {title} | {h1} | {desc} |")
+
     lines.append("\n## Кластеры по запросам\n")
     for r in rows:
         lines.append(f"### {r['cluster']} → {r['action']}  (priority {r['priority']:.3f}, mode {r.get('score_mode','-')}, confidence {r.get('confidence','-')})")
@@ -289,9 +310,44 @@ def write_markdown(rows: list[dict], path: str | Path) -> Path:
             lines.append(f"- новые запросы: {', '.join(r['new_queries'][:10])}")
         if r.get("lost_queries"):
             lines.append(f"- потерянные: {', '.join(r['lost_queries'][:10])}")
+        if r.get("seo_title"):
+            lines.append(
+                f"- SEO: title «{r['seo_title']}» / h1 «{r.get('seo_h1','')}» / "
+                f"desc «{r.get('seo_description','')}»"
+            )
         lines.append("- запросы:")
         for q in r["all_queries"]:
             lines.append(f"  - {q}")
         lines.append("")
     path.write_text("\n".join(lines), encoding="utf-8")
     return path
+
+
+def write_page_briefs(
+    clusters: list[Cluster],
+    page_briefs: dict[int, str],
+    dir_path: str | Path,
+) -> Path | None:
+    """Записать markdown-брифы копирайтеру: один файл на кластер.
+
+    page_briefs: {cluster_id: markdown_str} (создаётся в seo_node для CREATE-кластеров).
+    Возвращает путь к директории briefs/ или None если ничего не записали.
+    """
+    if not page_briefs:
+        return None
+    dir_path = Path(dir_path)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    by_id = {c.cluster_id: c for c in clusters}
+    written = 0
+    for cid, brief in page_briefs.items():
+        if not brief:
+            continue
+        c = by_id.get(cid)
+        slug = (getattr(c, "slug", "") if c else "") or f"cluster-{cid}"
+        label = (c.label if c else "") or slug
+        # На случай дублирующихся slug-ов между кластерами — суффикс cid
+        fname = f"{slug}-{cid}.md"
+        head = f"# Бриф: {label}\n\n_slug: `{slug}`, cluster_id: {cid}_\n\n"
+        (dir_path / fname).write_text(head + brief.strip() + "\n", encoding="utf-8")
+        written += 1
+    return dir_path if written else None

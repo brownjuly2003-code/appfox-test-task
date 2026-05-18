@@ -10,7 +10,7 @@ Flow:
                                           │       │
                                           │       └─→ cluster (1 retry с relaxed threshold)
                                           ▼
-                                      label → merge → gap → output → END
+                                      label → merge → gap → seo → output → END
 
 Guards принимают однократное решение (см. MAX_*_RETRIES в state.py) — это не
 бесконечный цикл, а одна попытка адаптации к плохим входным данным.
@@ -28,6 +28,7 @@ from .nodes import (
     label_node,
     merge_node,
     output_node,
+    seo_node,
 )
 from .state import (
     BROADER_MODIFIERS,
@@ -109,6 +110,7 @@ def build_graph():
     g.add_node("label", label_node)
     g.add_node("merge", merge_node)
     g.add_node("gap", gap_node)
+    g.add_node("seo", seo_node)
     g.add_node("output", output_node)
 
     g.set_entry_point("collect")
@@ -132,7 +134,8 @@ def build_graph():
 
     g.add_edge("label", "merge")
     g.add_edge("merge", "gap")
-    g.add_edge("gap", "output")
+    g.add_edge("gap", "seo")
+    g.add_edge("seo", "output")
     g.add_edge("output", END)
 
     return g.compile()

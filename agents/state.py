@@ -35,6 +35,9 @@ class PipelineState(TypedDict, total=False):
     prev_diff: dict[int, dict[str, Any]]
     comp_diff: dict[int, dict[str, Any]]
     removed_clusters: list[dict[str, Any]]  # prev-кластеры без match в current → drop/архив
+    seo_meta: dict[int, dict[str, str]]      # cluster_id → {title, h1, description}
+    page_briefs: dict[int, str]              # cluster_id → markdown brief
+    skip_seo: bool                           # CLI флаг --no-seo
     rows: list[dict[str, Any]]
     state_path: str
 
