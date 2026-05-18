@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Semcore Agent — Commercial Semantic Core Pipeline</title>
+<meta name="description" content="Агент превращает список поисковых запросов в карту страниц сайта: каждый запрос получает намерение, попадает в группу, и группа выходит на решение по странице.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0a'/%3E%3Ctext x='16' y='22' font-family='Inter,sans-serif' font-size='18' font-weight='700' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0a0a0a; --ink-2:#1f1f1f; --muted:#525252; --muted-2:#737373;
+  --line:#e5e5e5; --line-soft:#f0f0f0; --surface:#fafafa; --surface-2:#f5f5f5;
+  --accent:#2563eb; --green:#0f8a3d; --amber:#a16207; --bg:#ffffff;
+  --tab:"tnum" 1,"lnum" 1;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px; line-height:1.6; color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  font-feature-settings:"ss01","cv11";
+}
+::selection{background:var(--ink); color:#fff}
+a{color:var(--ink); text-decoration:none; border-bottom:1px solid var(--line)}
+a:hover{border-bottom-color:var(--ink)}
+.mono{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace}
+.num{font-feature-settings:var(--tab); font-variant-numeric:tabular-nums lining-nums}
+
+/* lang toggle */
+body[data-lang="ru"] [data-l="en"]{display:none}
+body[data-lang="en"] [data-l="ru"]{display:none}
+
+/* term tooltips */
+.term{
+  border-bottom:1px dotted var(--muted-2); cursor:help; position:relative;
+  white-space:nowrap;
+}
+.term:hover{border-bottom-color:var(--ink); color:var(--ink)}
+.term::after{
+  content: attr(data-tip);
+  position:absolute; bottom:calc(100% + 10px); left:50%;
+  transform:translateX(-50%) translateY(4px);
+  background:var(--ink); color:#fff;
+  font-size:13px; line-height:1.5; font-weight:400; letter-spacing:0;
+  padding:10px 14px; border-radius:6px;
+  width:max-content; max-width:300px;
+  white-space:normal; text-align:left;
+  pointer-events:none; opacity:0; visibility:hidden;
+  transition:opacity .14s, transform .14s;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  z-index:60;
+}
+.term::before{
+  content:""; position:absolute; bottom:calc(100% + 4px); left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent; border-top-color:var(--ink);
+  opacity:0; visibility:hidden; transition:opacity .14s;
+  z-index:61;
+}
+.term:hover::after, .term:focus::after{opacity:1; visibility:visible; transform:translateX(-50%) translateY(0)}
+.term:hover::before, .term:focus::before{opacity:1; visibility:visible}
+@media(max-width:520px){.term::after, .term::before{display:none}}
+
+/* top bar */
+.bar{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.92); backdrop-filter:saturate(140%) blur(8px); border-bottom:1px solid var(--line)}
+.bar-row{max-width:1100px; margin:0 auto; padding:14px 32px; display:flex; align-items:center; gap:24px; font-size:13px}
+.bar a{border:none}
+.bar-name{font-weight:600; letter-spacing:-.01em}
+.bar-role{color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.08em}
+.bar-nav{margin-left:auto; display:flex; gap:22px; color:var(--muted); align-items:center}
+.bar-nav a:hover{color:var(--ink)}
+#lang-toggle{
+  background:none; border:1px solid var(--line); padding:6px 12px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em;
+  color:var(--muted); cursor:pointer; border-radius:4px;
+  transition:border-color .14s;
+}
+#lang-toggle:hover{border-color:var(--ink)}
+#lang-toggle .l{padding:0 2px}
+body[data-lang="ru"] #lang-toggle .l-ru, body[data-lang="en"] #lang-toggle .l-en{color:var(--ink); font-weight:600}
+#lang-toggle .sep{color:var(--muted-2); margin:0 2px}
+@media(max-width:760px){.bar-row{padding:12px 20px; gap:14px} .bar-nav{display:none} .bar-role{display:none} .bar-nav-mob{display:flex !important; margin-left:auto}}
+.bar-nav-mob{display:none}
+
+.wrap{max-width:1100px; margin:0 auto; padding:0 32px}
+@media(max-width:760px){.wrap{padding:0 20px}}
+
+/* hero */
+.hero{padding:104px 0 56px}
+.eyebrow{font-family:'JetBrains Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin-bottom:28px; display:flex; align-items:center; gap:14px}
+.eyebrow::before{content:""; width:32px; height:1px; background:var(--ink)}
+.hero h1{font-size:clamp(38px,5.6vw,72px); line-height:1.04; letter-spacing:-.035em; font-weight:600; margin:0 0 26px; max-width:920px}
+.hero-lede{font-size:18px; line-height:1.6; color:var(--ink-2); max-width:760px; margin:0 0 48px}
+.hero-lede p{margin:0 0 12px}
+.hero-lede p:last-child{margin:0}
+@media(max-width:760px){.hero{padding:56px 0 40px} .hero-lede{font-size:16px; margin-bottom:36px}}
+
+/* proof shelf */
+.shelf{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.shelf > div{background:#fff; padding:32px 26px; min-width:0}
+.shelf .scope{margin:0 0 14px; font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); display:flex; align-items:center; gap:10px}
+.shelf .scope::before{content:""; width:18px; height:1px; background:var(--ink)}
+.hg-num{font-size:46px; line-height:1.0; letter-spacing:-.035em; font-weight:600; margin:0 0 12px}
+.hg-num .arr{display:inline-block; font-size:28px; color:var(--muted); margin:0 6px; vertical-align:6px; font-weight:500}
+.hg-num .sub{font-size:22px; color:var(--muted); margin-left:4px; font-weight:500}
+.hg-lab{font-size:14px; color:var(--ink-2); line-height:1.5}
+.hg-lab b{color:var(--ink); font-weight:600}
+@media(max-width:980px){.shelf{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.shelf{grid-template-columns:1fr}}
+
+/* sections */
+section{padding:80px 0; border-top:1px solid var(--line)}
+.sec-head{display:flex; align-items:baseline; gap:20px; margin-bottom:24px}
+.sec-num{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); letter-spacing:.08em}
+.sec-head h2{font-size:clamp(24px,3vw,34px); line-height:1.2; letter-spacing:-.02em; font-weight:600; margin:0}
+.sec-lede{font-size:17px; color:var(--ink-2); max-width:780px; margin:0 0 36px; line-height:1.6}
+.sec-lede p{margin:0 0 12px}
+.sec-lede p:last-child{margin:0}
+@media(max-width:760px){section{padding:56px 0}}
+
+/* pipeline strip */
+.pipe{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.pipe > div{background:#fff; padding:28px 24px}
+.pipe .step{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:12px}
+.pipe .step b{color:var(--ink); font-weight:500; margin-right:8px}
+.pipe .lab{font-size:14px; line-height:1.55; color:var(--ink-2)}
+.pipe .lab b{color:var(--ink); font-weight:600}
+@media(max-width:760px){.pipe{grid-template-columns:1fr}}
+
+/* supervisor box */
+.sup{background:var(--surface); border:1px solid var(--line); padding:32px 32px; margin-top:8px}
+.sup h3{margin:0 0 12px; font-size:18px; font-weight:600; letter-spacing:-.01em}
+.sup p.intro{margin:0 0 22px; font-size:15px; color:var(--ink-2); line-height:1.6}
+.sup .row{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+.sup .guard{padding:20px 22px; background:#fff; border-left:3px solid var(--accent)}
+.sup .guard .name{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); margin-bottom:10px; letter-spacing:.04em}
+.sup .guard .cond{font-size:14px; color:var(--ink); margin-bottom:8px; line-height:1.55}
+.sup .guard .cond b{font-weight:600}
+.sup .guard .act{font-size:13px; color:var(--muted); line-height:1.55}
+.sup .smoke{margin:20px 0 0; font-size:14px; color:var(--muted); line-height:1.55; padding-top:18px; border-top:1px solid var(--line)}
+.sup .smoke b{color:var(--ink); font-weight:600}
+@media(max-width:680px){.sup .row{grid-template-columns:1fr} .sup{padding:24px 22px}}
+
+/* table */
+.tab{width:100%; border-collapse:collapse; margin-top:8px; font-size:14px}
+.tab th{text-align:left; font-weight:500; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; padding:10px 14px 10px 0; border-bottom:1px solid var(--line)}
+.tab td{padding:14px 14px 14px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.5}
+.tab td b{font-weight:600}
+.tab td.mono{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-2); word-break:break-all}
+@media(max-width:520px){
+  .tab{table-layout:fixed; font-size:12.5px}
+  .tab th, .tab td{word-break:break-word; padding-right:6px}
+  .tab td.mono{font-size:11px}
+}
+
+/* trust grid */
+.trust{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:8px}
+.trust > div{background:#fff; padding:24px 24px}
+.trust .name{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:10px}
+.trust .val{font-size:15px; color:var(--ink); line-height:1.6}
+.trust .val b{font-weight:600}
+@media(max-width:680px){.trust{grid-template-columns:1fr}}
+
+/* seo example cards */
+.seo-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:28px}
+.seo-card{border:1px solid var(--line); padding:22px 24px; background:#fff}
+.seo-card h3{margin:0 0 4px; font-size:15px; font-weight:600; letter-spacing:-.005em}
+.seo-card .url{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:18px}
+.seo-card .field{display:grid; grid-template-columns:90px 1fr; gap:14px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:14px; line-height:1.5}
+.seo-card .field:first-of-type{border-top:none; padding-top:6px}
+.seo-card .field .k{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding-top:2px}
+.seo-card .field .v{color:var(--ink); min-width:0; word-break:break-word}
+.seo-card .field .len{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-left:6px}
+.seo-card .brief{margin-top:18px; padding-top:18px; border-top:1px solid var(--line-soft)}
+.seo-card .brief .k{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:10px}
+.seo-card .brief ul{margin:0; padding-left:18px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+.seo-card .brief ul li{margin-bottom:4px}
+.seo-card .brief ul li b{color:var(--ink); font-weight:600}
+@media(max-width:760px){.seo-grid{grid-template-columns:1fr}}
+
+/* boundary */
+.bnd{border-left:3px solid var(--accent); padding:20px 24px; background:var(--surface); margin-top:8px}
+.bnd p{margin:0 0 14px; font-size:14px; color:var(--ink-2); line-height:1.6}
+.bnd p:last-child{margin:0}
+.bnd p b{color:var(--ink); font-weight:600}
+
+/* footer */
+footer{padding:48px 0 64px; color:var(--muted); font-size:14px; border-top:1px solid var(--line)}
+footer .row{display:flex; gap:28px; flex-wrap:wrap; margin-top:14px}
+footer a{color:var(--ink-2); border-bottom:1px solid var(--line)}
+footer a:hover{border-bottom-color:var(--ink)}
+</style>
+</head>
+<body data-lang="ru">
+
+<header class="bar">
+  <div class="bar-row">
+    <a class="bar-name" href="#">Semcore Agent</a>
+    <span class="bar-role" data-l="ru">Карта страниц по запросам · LangGraph</span>
+    <span class="bar-role" data-l="en">Commercial Semantic Core · LangGraph</span>
+    <nav class="bar-nav">
+      <a href="#mechanism" data-l="ru">Как работает</a><a href="#mechanism" data-l="en">Mechanism</a>
+      <a href="#supervisor" data-l="ru">Supervisor</a><a href="#supervisor" data-l="en">Supervisor</a>
+      <a href="#trust" data-l="ru">Доказательства</a><a href="#trust" data-l="en">Trust</a>
+      <a href="#boundary" data-l="ru">Дальше</a><a href="#boundary" data-l="en">Roadmap</a>
+      <button id="lang-toggle" aria-label="Switch language">
+        <span class="l l-ru">RU</span><span class="sep">/</span><span class="l l-en">EN</span>
+      </button>
+    </nav>
+    <nav class="bar-nav-mob">
+      <button id="lang-toggle-mob" onclick="document.getElementById('lang-toggle').click()" style="background:none;border:1px solid var(--line);padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--muted);cursor:pointer;border-radius:4px">
+        <span data-l="ru">RU → EN</span><span data-l="en">EN → RU</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="border-top:none">
+    <div class="eyebrow">
+      <span data-l="ru">Агенты ИИ · 2026-05-18</span>
+      <span data-l="en">AI agents · 2026-05-18</span>
+    </div>
+
+    <h1 data-l="ru">Запросы превращаются<br>в карту страниц сайта</h1>
+    <h1 data-l="en">Search queries<br>become a sitemap of decisions</h1>
+
+    <div class="hero-lede" data-l="ru">
+      <p>Агент берёт список поисковых запросов и описание бизнеса. Чистит мусор, понимает, что человек ищет (купить, узнать, сравнить), группирует похожие запросы — и для каждой группы предлагает страницу: создать новую, обновить существующую, написать статью, поднять FAQ или не брать в работу.</p>
+      <p>На выходе — не «список ключей», а таблица решений: <b>группа → страница → действие</b>. Для «Создать»-групп — сразу готовый <b>title / H1 / description</b> с проверкой длин и <b>бриф копирайтеру</b> с H2-структурой. Без ручного триажа после.</p>
+    </div>
+    <div class="hero-lede" data-l="en">
+      <p>One pipeline turns raw search queries into a sitemap of actions. Filters noise, classifies <span class="term" data-tip="What the user actually wants: buy, learn, compare, find a brand, locate a store, solve a problem.">intent</span>, groups by meaning, and emits a decision per group: <b>create</b>, <b>update</b>, <b>article</b>, <b>FAQ</b>, or <b>drop</b>.</p>
+      <p>Output is not a keyword list but a decision table: <b>cluster → page → action</b>. For "Create" clusters — ready <b>title / H1 / description</b> with length checks and a <b>copywriter brief</b> with H2 structure. No manual triage downstream.</p>
+    </div>
+  </section>
+
+  <div class="shelf">
+    <div>
+      <div class="scope" data-l="ru">сжатие</div>
+      <div class="scope" data-l="en">collapse</div>
+      <div class="hg-num num">200 <span class="arr">→</span> 16</div>
+      <div class="hg-lab" data-l="ru">На демо-домене (мебель): 200 запросов из autosuggest/конкурентов <span class="arr">→</span> <b>16 групп</b>, по каждой из которых есть решение по странице.</div>
+      <div class="hg-lab" data-l="en">Demo domain (furniture): 200 queries from autosuggest + competitors collapse into <b>16 actionable groups</b> after intent-aware merge.</div>
+    </div>
+    <div>
+      <div class="scope" data-l="ru">дисциплина</div>
+      <div class="scope" data-l="en">discipline</div>
+      <div class="hg-num num">7 <span class="sub" data-l="ru">типов</span><span class="sub" data-l="en">intents</span></div>
+      <div class="hg-lab" data-l="ru">Семь типов <span class="term" data-tip="Намерение пользователя за запросом: купить, узнать, сравнить, найти товар по бренду, найти ближайший магазин, решить проблему.">намерений</span> — каждый запрос помечается одним из них правилами и LLM.</div>
+      <div class="hg-lab" data-l="en">Seven intent buckets. Every query is labelled by rule layer + <span class="term" data-tip="Large Language Model: GPT, Mistral, Claude, etc.">LLM</span> classification.</div>
+    </div>
+    <div>
+      <div class="scope">supervisor</div>
+      <div class="hg-num num">2 <span class="sub" data-l="ru">правила</span><span class="sub" data-l="en">guards</span></div>
+      <div class="hg-lab" data-l="ru"><span class="term" data-tip="Библиотека для построения агентов с ветвящейся логикой и циклами повтора.">LangGraph</span>-надстройка: если на чистке выпало слишком много — повторить с другими модификаторами; если групп получилось мало — ослабить порог склейки.</div>
+      <div class="hg-lab" data-l="en"><span class="term" data-tip="Library for graph-shaped agents with conditional edges and retry loops.">LangGraph</span> supervisor with two conditional guards: low-yield re-collect, undersized re-cluster.</div>
+    </div>
+    <div>
+      <div class="scope" data-l="ru">тесты</div>
+      <div class="scope" data-l="en">tests</div>
+      <div class="hg-num num">45 <span class="sub">/ 45</span></div>
+      <div class="hg-lab" data-l="ru">Все автотесты (<span class="term" data-tip="Стандартный инструмент автотестов в Python.">pytest</span>) проходят. Тринадцать — про supervisor: guards, threshold direction, retry budgets, end-to-end. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Три — про facet-guard в landing matching.</div>
+      <div class="hg-lab" data-l="en">All <span class="term" data-tip="The standard Python test runner.">pytest</span> cases pass. Thirteen exercise supervisor: guards, threshold direction, retry budgets, end-to-end. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Three cover facet-guard in landing matching.</div>
+    </div>
+  </div>
+
+  <section id="mechanism">
+    <div class="sec-head">
+      <span class="sec-num mono">01</span>
+      <h2 data-l="ru">Как работает</h2>
+      <h2 data-l="en">Pipeline</h2>
+    </div>
+
+    <div class="sec-lede" data-l="ru">
+      <p>Семь шагов превращают сырые запросы и описание бизнеса в карту решений по страницам. LLM включается только там, где правил недостаточно — определить намерение, назвать группу и собрать SEO-мету с брифом копирайтеру. Внешние источники (autosuggest, конкуренты) дают свежий вход; всё, что делается внутри pipeline после сбора — детерминированно.</p>
+    </div>
+    <div class="sec-lede" data-l="en">
+      <p>Seven steps turn raw queries and a business spec into a page-decision map. LLM kicks in only where rules can't decide — intent classification, group labels and SEO meta + copy brief. External sources (autosuggest, competitors) provide fresh input; everything downstream of collection is deterministic.</p>
+    </div>
+
+    <div class="pipe">
+      <div>
+        <div class="step"><b>01</b> <span data-l="ru">Сбор</span><span data-l="en">Collect</span></div>
+        <div class="lab" data-l="ru">Подсказки поисковика и парсинг конкурентов работают вживую. <span class="term" data-tip="Яндекс-сервис частотности поисковых запросов.">Wordstat</span>, <span class="term" data-tip="Google Search Console — статистика по поиску для владельцев сайтов.">GSC</span>, <span class="term" data-tip="Десктопный софт для сбора и анализа поисковой семантики.">KeyCollector</span> — пока заглушки, для реальных API нужны учётные данные и OAuth.</div>
+        <div class="lab" data-l="en">Autosuggest and competitor scraping are live. <span class="term" data-tip="Yandex query frequency service.">Wordstat</span>, <span class="term" data-tip="Google Search Console.">GSC</span>, <span class="term" data-tip="Desktop tool for SEO keyword research.">KeyCollector</span> remain stubs — live wiring needs credentials and OAuth, not just a config flag.</div>
+      </div>
+      <div>
+        <div class="step"><b>02</b> <span data-l="ru">Чистка</span><span data-l="en">Clean</span></div>
+        <div class="lab" data-l="ru">Сначала простые правила — нельзя бренды, юридические риски, прямой мусор. Это быстро и предсказуемо. <b>Только после этого</b> LLM решает, какое у запроса намерение. Дешевле и точнее, чем кидать всё в модель.</div>
+        <div class="lab" data-l="en">Rule filter first (brands, legal risks, garbage) — cheap and predictable. <b>Only then</b> LLM classifies intent. Cheaper and more accurate than feeding raw input to the model.</div>
+      </div>
+      <div>
+        <div class="step"><b>03</b> <span data-l="ru">Группировка</span><span data-l="en">Cluster</span></div>
+        <div class="lab" data-l="ru">Запросы переводим в числовые векторы (<span class="term" data-tip="Числовой вектор, в который превращается текст. По расстоянию между векторами считают похожесть.">embeddings</span>) через <span class="term" data-tip="Библиотека для эмбеддингов предложений на базе трансформеров.">sentence-transformers</span>. Большие группы дополнительно разбиваем по признакам — размер, материал, назначение. Похожие группы потом склеиваются.</div>
+        <div class="lab" data-l="en">Queries → vectors via <span class="term" data-tip="Library for sentence-level embeddings.">sentence-transformers</span>. Big clusters split by facets (size, material, use-case); near-duplicates merged downstream.</div>
+      </div>
+      <div>
+        <div class="step"><b>04</b> <span data-l="ru">Подбор страницы</span><span data-l="en">Match</span></div>
+        <div class="lab" data-l="ru">Каждой группе ставится решение по странице: использовать существующую, создать новую категорию, написать гайд или не брать в работу. <b>Важно:</b> группа с коммерческим намерением никогда не уходит в блог — это закодировано в правилах матчинга.</div>
+        <div class="lab" data-l="en">Each cluster gets a page decision: reuse existing, create new category, write article, or drop. <b>Hard rule:</b> commercial intent never maps to /blog/.</div>
+      </div>
+      <div>
+        <div class="step"><b>05</b> <span data-l="ru">Оценка приоритета</span><span data-l="en">Score</span></div>
+        <div class="lab" data-l="ru">Для каждой группы считаем приоритет по формуле (спрос × бизнес-ценность × шанс выйти в топ − сложность). Поле <span class="term" data-tip="Пометка, на чём построена оценка: production (живые данные из Wordstat/GSC), mixed (часть из stubs), demo (всё из stubs).">score_mode</span> честно показывает, на чём оценка построена.</div>
+        <div class="lab" data-l="en">Each cluster gets a priority score (demand × business value × ranking opportunity − difficulty). <span class="term" data-tip="Honest label for what backs the score: production (live Wordstat/GSC), mixed (partial stubs), demo (full stubs).">score_mode</span> states what the number is actually based on.</div>
+      </div>
+      <div>
+        <div class="step"><b>06</b> <span data-l="ru">Поиск пробелов</span><span data-l="en">Gap</span></div>
+        <div class="lab" data-l="ru">Замкнутый цикл: новые группы сравниваются с тем, что уже есть на сайте и у конкурентов. Возвращает обновлённую таблицу — какие группы стоит добавить, какие расширить, какие убрать.</div>
+        <div class="lab" data-l="en">Closed loop: new clusters compared against current site + competitor pages. Returns an updated decision table — what to add, expand, drop.</div>
+      </div>
+      <div>
+        <div class="step"><b>07</b> <span data-l="ru">SEO-мета</span><span data-l="en">SEO meta</span></div>
+        <div class="lab" data-l="ru">Для каждой «Создать»-группы — <b>title / H1 / description</b> с проверкой длин и intent-aware промптом (для коммерческой — призыв к действию, для проблемной — вопросительная форма), плюс бриф копирайтеру: аудитория, H2-структура, тон, ключевые запросы. Файл на каждую группу в <code class="mono">briefs/</code>. Отключается флагом <code class="mono">--no-seo</code>.</div>
+        <div class="lab" data-l="en">For every "Create" cluster — <b>title / H1 / description</b> with length checks and intent-aware prompt (commercial → CTA, problem → interrogative title), plus a copywriter brief: audience, H2 structure, tone, target queries. One file per cluster in <code class="mono">briefs/</code>. Disabled via <code class="mono">--no-seo</code>.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="supervisor">
+    <div class="sec-head">
+      <span class="sec-num mono">02</span>
+      <h2 data-l="ru">Supervisor: когда повторить шаг</h2>
+      <h2 data-l="en">LangGraph supervisor</h2>
+    </div>
+
+    <div class="sec-lede" data-l="ru">
+      <p>Весь пайплайн обёрнут в надстройку-<span class="term" data-tip="Агент-надстройка, который решает, надо ли повторить или пересобрать шаг на основе реальных метрик.">supervisor</span> на LangGraph. После критичных шагов она смотрит на реальные числа и решает — идти дальше или повторить с другими настройками. Это не «попробовать ещё раз», а два явных правила:</p>
+    </div>
+    <div class="sec-lede" data-l="en">
+      <p>The whole pipeline is wrapped in a LangGraph state-graph. After critical steps, the supervisor inspects real metrics and decides whether to proceed or retry with adjusted parameters. Not a timer — two explicit guards:</p>
+    </div>
+
+    <div class="sup">
+      <div class="row">
+        <div class="guard">
+          <div class="name mono">yield_guard</div>
+          <div class="cond" data-l="ru"><b>Если</b> после чистки осталось <b>меньше 30%</b> от собранного —</div>
+          <div class="cond" data-l="en"><b>If</b> &lt;30% of collected queries survive cleaning —</div>
+          <div class="act" data-l="ru">список модификаторов узковат. Расширяем его и собираем заново. Одна повторная попытка, дальше пропускаем дефицит как факт.</div>
+          <div class="act" data-l="en">expand modifier list and re-collect. One retry; if still low, log and proceed honestly.</div>
+        </div>
+        <div class="guard">
+          <div class="name mono">size_guard</div>
+          <div class="cond" data-l="ru"><b>Если</b> после группировки получилось <b>меньше трёх</b> кластеров —</div>
+          <div class="cond" data-l="en"><b>If</b> clustering yields fewer than three groups —</div>
+          <div class="act" data-l="ru">порог склейки был слишком жёсткий. Ослабляем его на +0.10 и группируем ещё раз. Одна повторная попытка.</div>
+          <div class="act" data-l="en">similarity threshold too strict. Relax by +0.10 and re-cluster. One retry.</div>
+        </div>
+      </div>
+      <p class="smoke" data-l="ru">Журнал решений пишется в <code class="mono">state["decisions"]</code> — видно, какой guard сработал и почему. <b>Реальный прогон на демо-домене:</b> 252 секунды от seed-конфига до 16 финальных групп. На «хороших» входах guards не срабатывают — они страховка, не основной путь.</p>
+      <p class="smoke" data-l="en">Decision log lives in <code class="mono">state["decisions"]</code> — every guard hit is recorded. <b>Real demo run:</b> 252 s from seed config to 16 final clusters. On clean input guards do not fire — they are insurance, not the default path.</p>
+    </div>
+  </section>
+
+  <section id="output">
+    <div class="sec-head">
+      <span class="sec-num mono">03</span>
+      <h2 data-l="ru">Результат: группа → страница → действие</h2>
+      <h2 data-l="en">Output: cluster → page → action</h2>
+    </div>
+
+    <div class="sec-lede" data-l="ru">
+      <p>Финальная таблица — не список ключей, а таблица решений. По каждой группе ясно: какая страница её обслуживает, что с ней делать и с каким намерением заходит пользователь.</p>
+    </div>
+    <div class="sec-lede" data-l="en">
+      <p>The final table is not a keyword list — it is a decision table. For every cluster: which page serves it, what to do, and the user intent behind the query.</p>
+    </div>
+
+    <table class="tab num">
+      <thead>
+        <tr>
+          <th data-l="ru">Группа</th><th data-l="en">Cluster</th>
+          <th data-l="ru">Страница</th><th data-l="en">Page</th>
+          <th data-l="ru">Действие</th><th data-l="en">Action</th>
+          <th data-l="ru">Намерение</th><th data-l="en">Intent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Угловые диваны</b></td>
+          <td class="mono">/catalog/uglovye-divany/</td>
+          <td><span data-l="ru">Обновить</span><span data-l="en">Update</span></td>
+          <td>commercial</td>
+        </tr>
+        <tr>
+          <td><b><span data-l="ru">Маленькие угловые диваны</span><span data-l="en">Small corner sofas</span></b></td>
+          <td class="mono">/catalog/malenkie-uglovye-divany/</td>
+          <td><span data-l="ru">Создать</span><span data-l="en">Create</span></td>
+          <td>commercial</td>
+        </tr>
+        <tr>
+          <td><b><span data-l="ru">Диваны для кухни</span><span data-l="en">Kitchen sofas</span></b></td>
+          <td class="mono">/catalog/divany-dlya-kuhni/</td>
+          <td><span data-l="ru">Создать</span><span data-l="en">Create</span></td>
+          <td>commercial</td>
+        </tr>
+        <tr>
+          <td><b><span data-l="ru">Как выбрать диван</span><span data-l="en">How to choose a sofa</span></b></td>
+          <td class="mono">/blog/kak-vybrat-divan/</td>
+          <td><span data-l="ru">Написать статью</span><span data-l="en">Write article</span></td>
+          <td>informational</td>
+        </tr>
+        <tr>
+          <td><b><span data-l="ru">Диван для сна</span><span data-l="en">Sofa for daily sleep</span></b></td>
+          <td class="mono">/catalog/divany-dlya-sna/</td>
+          <td><span data-l="ru">Гибридная страница</span><span data-l="en">Hybrid page</span></td>
+          <td>commercial + info</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="sec-lede" data-l="ru" style="margin-top:48px; margin-bottom:0">
+      <p>Для каждой «Создать»-группы рядом с действием — готовая SEO-мета и бриф копирайтеру. Промпт <span class="term" data-tip="Аware означает «учитывает». Для коммерческой группы — призыв к действию; для проблемной — вопросительная форма title; для локальной — упоминание региона.">intent-aware</span>: коммерческой группе — призыв к действию, проблемной — вопросительная форма title, локальной — упоминание региона. Длины <code class="mono">title ≤60</code> / <code class="mono">h1 ≤80</code> / <code class="mono">description 140–160</code> проверяются post-LLM.</p>
+    </div>
+    <div class="sec-lede" data-l="en" style="margin-top:48px; margin-bottom:0">
+      <p>For every "Create" cluster — SEO meta + copywriter brief next to the action. The prompt is <span class="term" data-tip="Intent-aware: commercial → CTA, problem → interrogative title, local → region mention.">intent-aware</span>: commercial → CTA, problem → interrogative title, local → region mention. Length caps (<code class="mono">title ≤60</code> / <code class="mono">h1 ≤80</code> / <code class="mono">description 140–160</code>) are enforced post-LLM.</p>
+    </div>
+
+    <div class="seo-grid">
+      <div class="seo-card">
+        <h3><span data-l="ru">Кухонные диваны</span><span data-l="en">Kitchen sofas</span></h3>
+        <div class="url">/catalog/kuhonnye-divany/ · commercial · <span data-l="ru">Создать</span><span data-l="en">Create</span></div>
+        <div class="field">
+          <div class="k">title</div>
+          <div class="v"><span data-l="ru">Кухонные диваны в Москве — купить с доставкой</span><span data-l="en">Kitchen sofas in Moscow — buy with delivery</span> <span class="len">52</span></div>
+        </div>
+        <div class="field">
+          <div class="k">h1</div>
+          <div class="v"><span data-l="ru">Кухонные диваны — каталог с ценами и фото</span><span data-l="en">Kitchen sofas — catalog with prices and photos</span> <span class="len">44</span></div>
+        </div>
+        <div class="field">
+          <div class="k">description</div>
+          <div class="v"><span data-l="ru">Купить кухонный диван в Москве с доставкой по РФ. Подбор по размеру, обивке и цвету. Гарантия 18 месяцев, оплата при получении. Закажите со скидкой.</span><span data-l="en">Buy a kitchen sofa in Moscow with nationwide delivery. Choose by size, upholstery, colour. 18-month warranty, pay on delivery. Order with discount.</span> <span class="len">155</span></div>
+        </div>
+        <div class="brief">
+          <div class="k" data-l="ru">briefs/kuhonnye-divany-1.md</div>
+          <div class="k" data-l="en">briefs/kuhonnye-divany-1.md</div>
+          <ul data-l="ru">
+            <li><b>Аудитория:</b> B2C, обустройство кухни-гостиной, бюджет 30–80&nbsp;тыс.</li>
+            <li><b>Структура:</b> ## Подборка моделей · ## Размеры под кухню · ## Материал обивки · ## Доставка и оплата · ## Гарантия</li>
+            <li><b>Тон:</b> практичный, без агрессии, цифры и сроки конкретно</li>
+          </ul>
+          <ul data-l="en">
+            <li><b>Audience:</b> B2C, kitchen-living-room setup, ₽30–80k budget</li>
+            <li><b>Structure:</b> ## Model lineup · ## Sizes for kitchens · ## Upholstery · ## Delivery & payment · ## Warranty</li>
+            <li><b>Tone:</b> practical, no aggression, concrete numbers and timelines</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="seo-card">
+        <h3><span data-l="ru">Как выбрать диван</span><span data-l="en">How to choose a sofa</span></h3>
+        <div class="url">/blog/kak-vybrat-divan/ · informational · <span data-l="ru">Написать статью</span><span data-l="en">Write article</span></div>
+        <div class="field">
+          <div class="k">title</div>
+          <div class="v"><span data-l="ru">Как выбрать диван: гайд по размеру, материалу, наполнителю</span><span data-l="en">How to choose a sofa: size, material, filling guide</span> <span class="len">58</span></div>
+        </div>
+        <div class="field">
+          <div class="k">h1</div>
+          <div class="v"><span data-l="ru">Как выбрать диван — полное руководство</span><span data-l="en">How to choose a sofa — complete guide</span> <span class="len">38</span></div>
+        </div>
+        <div class="field">
+          <div class="k">description</div>
+          <div class="v"><span data-l="ru">Разбираем, на что смотреть при выборе дивана: размер, механизм, обивка, наполнитель. С чек-листом и сравнением материалов от обивщиков и продавцов.</span><span data-l="en">What to check when picking a sofa: size, mechanism, upholstery, filling. With a checklist and material comparison from upholsterers and sellers.</span> <span class="len">152</span></div>
+        </div>
+        <div class="brief">
+          <div class="k" data-l="ru">briefs/kak-vybrat-divan-3.md</div>
+          <div class="k" data-l="en">briefs/kak-vybrat-divan-3.md</div>
+          <ul data-l="ru">
+            <li><b>Аудитория:</b> покупатель в research-фазе, ещё не определился</li>
+            <li><b>Структура:</b> ## Размер под комнату · ## Механизм трансформации · ## Обивка · ## Наполнитель · ## Чек-лист перед покупкой</li>
+            <li><b>Тон:</b> экспертный, без продажи; цель — закрыть возражения</li>
+          </ul>
+          <ul data-l="en">
+            <li><b>Audience:</b> buyer in research phase, undecided</li>
+            <li><b>Structure:</b> ## Size for the room · ## Transformation mechanism · ## Upholstery · ## Filling · ## Pre-purchase checklist</li>
+            <li><b>Tone:</b> expert, no selling; goal — close objections</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="trust">
+    <div class="sec-head">
+      <span class="sec-num mono">04</span>
+      <h2 data-l="ru">Доказательства</h2>
+      <h2 data-l="en">Trust layer</h2>
+    </div>
+
+    <div class="sec-lede" data-l="ru">
+      <p>Что именно проверено — и чем. У каждого числа есть источник.</p>
+    </div>
+    <div class="sec-lede" data-l="en">
+      <p>What is verified — and by what. Every number has a source.</p>
+    </div>
+
+    <div class="trust">
+      <div>
+        <div class="name">pytest</div>
+        <div class="val" data-l="ru"><b class="num">45 / 45</b> проходят. Тринадцать тестов — про supervisor: компиляция графа, обе guard-функции, направление threshold (регрессия 2026-05-18), retry-бюджеты, end-to-end, новый <code class="mono">seo_node</code>. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Три — про facet-guard в landing matching («угловые» vs «прямые» больше не путаются). Остальные 20 — про правила, матчинг и склейку кластеров.</div>
+        <div class="val" data-l="en"><b class="num">45 / 45</b> pass. Thirteen exercise supervisor: graph compile, both guards, threshold direction (2026-05-18 regression), retry budgets, end-to-end, new <code class="mono">seo_node</code>. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Three cover the landing-matching facet-guard (corner vs straight sofas no longer collide). Twenty cover rules, matching, cluster merging.</div>
+      </div>
+      <div>
+        <div class="name" data-l="ru">демо-прогон</div>
+        <div class="name" data-l="en">demo run</div>
+        <div class="val" data-l="ru">Seeds-конфиг (мебель): <b class="num">200 → 16</b> групп после склейки, <b class="num">252 с</b> на полный граф через LangGraph supervisor.</div>
+        <div class="val" data-l="en">Seeds (furniture): <b class="num">200 → 16</b> clusters after merge, <b class="num">252 s</b> end-to-end via LangGraph supervisor.</div>
+      </div>
+      <div>
+        <div class="name" data-l="ru">интерфейс</div>
+        <div class="name" data-l="en">interface</div>
+        <div class="val" data-l="ru"><span class="term" data-tip="Командная строка.">CLI</span> <code class="mono">python -m agents.cli</code> и Telegram-бот <a href="https://t.me/appfox_semcore_bot"><code class="mono">@appfox_semcore_bot</code></a>: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>. Артефакты: <code class="mono">decisions.csv</code> (SEO-колонки включены), <code class="mono">decisions.md</code>, <code class="mono">queries.csv</code>, <code class="mono">briefs/{slug}.md</code> для копирайтера.</div>
+        <div class="val" data-l="en"><span class="term" data-tip="Command-line interface.">CLI</span> <code class="mono">python -m agents.cli</code> plus Telegram bot <a href="https://t.me/appfox_semcore_bot"><code class="mono">@appfox_semcore_bot</code></a>: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>. Artifacts: <code class="mono">decisions.csv</code> (SEO columns included), <code class="mono">decisions.md</code>, <code class="mono">queries.csv</code>, <code class="mono">briefs/{slug}.md</code> for copywriters.</div>
+      </div>
+      <div>
+        <div class="name">stack</div>
+        <div class="val" data-l="ru">Python 3.13 · LangGraph 1.0 · sentence-transformers · <span class="term" data-tip="Европейский провайдер LLM.">Mistral</span> с fallback на <span class="term" data-tip="Провайдер быстрого LLM-инференса; здесь как fallback.">Groq</span> · requests long-poll · YAML-конфиги.</div>
+        <div class="val" data-l="en">Python 3.13 · LangGraph 1.0 · sentence-transformers · <span class="term" data-tip="European LLM provider.">Mistral</span> primary with <span class="term" data-tip="Fast LLM inference provider; used as fallback.">Groq</span> fallback · requests long-poll · YAML configs.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="boundary">
+    <div class="sec-head">
+      <span class="sec-num mono">05</span>
+      <h2 data-l="ru">Дальнейшие шаги</h2>
+      <h2 data-l="en">Roadmap</h2>
+    </div>
+
+    <div class="sec-lede" data-l="ru">
+      <p>Что подключается следующим — и почему сейчас это честно видно в коде, а не закопано в копи.</p>
+    </div>
+    <div class="sec-lede" data-l="en">
+      <p>What ships next — and why it stays honest in the code, not in the copy.</p>
+    </div>
+
+    <div class="bnd">
+      <p data-l="ru"><b>Wordstat, GSC, KeyCollector — пока заглушки.</b> Поле <code class="mono">score_mode</code> в результате становится <code class="mono">mixed</code> (или <code class="mono">demo</code> когда живых сигналов вообще нет), чтобы заказчик не путал демо-сигнал с боевыми данными. Подключение через реальные API — следующий шаг, узкое место — учётные данные и OAuth.</p>
+      <p data-l="en"><b>Wordstat / GSC / KeyCollector are stubbed.</b> <code class="mono">score_mode</code> in the output becomes <code class="mono">mixed</code> (or <code class="mono">demo</code> when no live signals at all) so demo data is never mistaken for production. Real-API wiring is next; the blocker is credentials and OAuth, not code structure.</p>
+
+      <p data-l="ru"><b>Различение кластеров по поисковой выдаче (<span class="term" data-tip="Страница выдачи поисковика — Search Engine Results Page.">SERP</span>) — пока не реализовано.</b> В брифе упоминается как future. Сейчас различаем группы по embeddings и label-склейке, не по выдаче Яндекса/Google.</p>
+      <p data-l="en"><b><span class="term" data-tip="Search Engine Results Page.">SERP</span>-based cluster differentiation</b> is in the brief as future work. Currently clusters are distinguished by embeddings and label merge, not by live search results.</p>
+
+      <p data-l="ru"><b>SEO-мета и бриф копирайтеру — собираются в шаге 07.</b> Title / H1 / description с проверкой длин и intent-aware промптом, плюс markdown-бриф с H2-структурой в <code class="mono">briefs/{slug}.md</code>. Post-indexing verify (GSC → CTR/position через 14/30 дней после публикации) — следующий шаг, нужен OAuth.</p>
+      <p data-l="en"><b>SEO meta and copywriter brief land in step 07.</b> Title / H1 / description with length checks and intent-aware prompts, plus a markdown brief with H2 structure under <code class="mono">briefs/{slug}.md</code>. Post-indexing verify (GSC → CTR/position 14/30 days after publication) is next; the blocker is OAuth.</p>
+
+      <p data-l="ru"><b>В демо один домен (мебель).</b> Универсальность под другие тематики не проверена — узкие seeds.yaml-конфиги переключают модификаторы и intent-правила, но валидации на e-commerce других вертикалей нет.</p>
+      <p data-l="en"><b>Single demo vertical (furniture).</b> Generalisation across verticals is untested — modifier lists and intent rules swap by config, but no cross-domain validation yet.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div>
+    <b style="color:var(--ink)">Едомских Юлия</b> · Senior Data Analyst / Data Engineer
+  </div>
+  <div class="row">
+    <a href="mailto:uedomskikh@gmail.com">uedomskikh@gmail.com</a>
+    <a href="https://t.me/JuliaPhe">t.me/JuliaPhe</a>
+    <a href="https://github.com/brownjuly2003-code/appfox-test-task" data-l="ru">Исходный код</a>
+    <a href="https://github.com/brownjuly2003-code/appfox-test-task" data-l="en">Repository</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var stored = null;
+  try{ stored = localStorage.getItem('semcore-lang'); }catch(e){}
+  if(stored === 'en' || stored === 'ru'){
+    document.body.dataset.lang = stored;
+    document.documentElement.lang = stored;
+  }
+  var btn = document.getElementById('lang-toggle');
+  if(btn){
+    btn.addEventListener('click', function(){
+      var cur = document.body.dataset.lang || 'ru';
+      var next = cur === 'ru' ? 'en' : 'ru';
+      document.body.dataset.lang = next;
+      document.documentElement.lang = next;
+      try{ localStorage.setItem('semcore-lang', next); }catch(e){}
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
