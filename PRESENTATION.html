@@ -159,6 +159,23 @@ section{padding:80px 0; border-top:1px solid var(--line)}
 .trust .val b{font-weight:600}
 @media(max-width:680px){.trust{grid-template-columns:1fr}}
 
+/* seo example cards */
+.seo-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:28px}
+.seo-card{border:1px solid var(--line); padding:22px 24px; background:#fff}
+.seo-card h3{margin:0 0 4px; font-size:15px; font-weight:600; letter-spacing:-.005em}
+.seo-card .url{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:18px}
+.seo-card .field{display:grid; grid-template-columns:90px 1fr; gap:14px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:14px; line-height:1.5}
+.seo-card .field:first-of-type{border-top:none; padding-top:6px}
+.seo-card .field .k{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding-top:2px}
+.seo-card .field .v{color:var(--ink); min-width:0; word-break:break-word}
+.seo-card .field .len{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-left:6px}
+.seo-card .brief{margin-top:18px; padding-top:18px; border-top:1px solid var(--line-soft)}
+.seo-card .brief .k{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:10px}
+.seo-card .brief ul{margin:0; padding-left:18px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+.seo-card .brief ul li{margin-bottom:4px}
+.seo-card .brief ul li b{color:var(--ink); font-weight:600}
+@media(max-width:760px){.seo-grid{grid-template-columns:1fr}}
+
 /* boundary */
 .bnd{border-left:3px solid var(--accent); padding:20px 24px; background:var(--surface); margin-top:8px}
 .bnd p{margin:0 0 14px; font-size:14px; color:var(--ink-2); line-height:1.6}
@@ -209,11 +226,11 @@ footer a:hover{border-bottom-color:var(--ink)}
 
     <div class="hero-lede" data-l="ru">
       <p>Агент берёт список поисковых запросов и описание бизнеса. Чистит мусор, понимает, что человек ищет (купить, узнать, сравнить), группирует похожие запросы — и для каждой группы предлагает страницу: создать новую, обновить существующую, написать статью, поднять FAQ или не брать в работу.</p>
-      <p>На выходе — не «список ключей», а таблица решений: <b>группа → страница → действие</b>. Без ручного триажа после.</p>
+      <p>На выходе — не «список ключей», а таблица решений: <b>группа → страница → действие</b>. Для «Создать»-групп — сразу готовый <b>title / H1 / description</b> с проверкой длин и <b>бриф копирайтеру</b> с H2-структурой. Без ручного триажа после.</p>
     </div>
     <div class="hero-lede" data-l="en">
       <p>One pipeline turns raw search queries into a sitemap of actions. Filters noise, classifies <span class="term" data-tip="What the user actually wants: buy, learn, compare, find a brand, locate a store, solve a problem.">intent</span>, groups by meaning, and emits a decision per group: <b>create</b>, <b>update</b>, <b>article</b>, <b>FAQ</b>, or <b>drop</b>.</p>
-      <p>Output is not a keyword list but a decision table: <b>cluster → page → action</b>. No manual triage downstream.</p>
+      <p>Output is not a keyword list but a decision table: <b>cluster → page → action</b>. For "Create" clusters — ready <b>title / H1 / description</b> with length checks and a <b>copywriter brief</b> with H2 structure. No manual triage downstream.</p>
     </div>
   </section>
 
@@ -392,6 +409,77 @@ footer a:hover{border-bottom-color:var(--ink)}
         </tr>
       </tbody>
     </table>
+
+    <div class="sec-lede" data-l="ru" style="margin-top:48px; margin-bottom:0">
+      <p>Для каждой «Создать»-группы рядом с действием — готовая SEO-мета и бриф копирайтеру. Промпт <span class="term" data-tip="Аware означает «учитывает». Для коммерческой группы — призыв к действию; для проблемной — вопросительная форма title; для локальной — упоминание региона.">intent-aware</span>: коммерческой группе — призыв к действию, проблемной — вопросительная форма title, локальной — упоминание региона. Длины <code class="mono">title ≤60</code> / <code class="mono">h1 ≤80</code> / <code class="mono">description 140–160</code> проверяются post-LLM.</p>
+    </div>
+    <div class="sec-lede" data-l="en" style="margin-top:48px; margin-bottom:0">
+      <p>For every "Create" cluster — SEO meta + copywriter brief next to the action. The prompt is <span class="term" data-tip="Intent-aware: commercial → CTA, problem → interrogative title, local → region mention.">intent-aware</span>: commercial → CTA, problem → interrogative title, local → region mention. Length caps (<code class="mono">title ≤60</code> / <code class="mono">h1 ≤80</code> / <code class="mono">description 140–160</code>) are enforced post-LLM.</p>
+    </div>
+
+    <div class="seo-grid">
+      <div class="seo-card">
+        <h3><span data-l="ru">Кухонные диваны</span><span data-l="en">Kitchen sofas</span></h3>
+        <div class="url">/catalog/kuhonnye-divany/ · commercial · <span data-l="ru">Создать</span><span data-l="en">Create</span></div>
+        <div class="field">
+          <div class="k">title</div>
+          <div class="v"><span data-l="ru">Кухонные диваны в Москве — купить с доставкой</span><span data-l="en">Kitchen sofas in Moscow — buy with delivery</span> <span class="len">52</span></div>
+        </div>
+        <div class="field">
+          <div class="k">h1</div>
+          <div class="v"><span data-l="ru">Кухонные диваны — каталог с ценами и фото</span><span data-l="en">Kitchen sofas — catalog with prices and photos</span> <span class="len">44</span></div>
+        </div>
+        <div class="field">
+          <div class="k">description</div>
+          <div class="v"><span data-l="ru">Купить кухонный диван в Москве с доставкой по РФ. Подбор по размеру, обивке и цвету. Гарантия 18 месяцев, оплата при получении. Закажите со скидкой.</span><span data-l="en">Buy a kitchen sofa in Moscow with nationwide delivery. Choose by size, upholstery, colour. 18-month warranty, pay on delivery. Order with discount.</span> <span class="len">155</span></div>
+        </div>
+        <div class="brief">
+          <div class="k" data-l="ru">briefs/kuhonnye-divany-1.md</div>
+          <div class="k" data-l="en">briefs/kuhonnye-divany-1.md</div>
+          <ul data-l="ru">
+            <li><b>Аудитория:</b> B2C, обустройство кухни-гостиной, бюджет 30–80&nbsp;тыс.</li>
+            <li><b>Структура:</b> ## Подборка моделей · ## Размеры под кухню · ## Материал обивки · ## Доставка и оплата · ## Гарантия</li>
+            <li><b>Тон:</b> практичный, без агрессии, цифры и сроки конкретно</li>
+          </ul>
+          <ul data-l="en">
+            <li><b>Audience:</b> B2C, kitchen-living-room setup, ₽30–80k budget</li>
+            <li><b>Structure:</b> ## Model lineup · ## Sizes for kitchens · ## Upholstery · ## Delivery & payment · ## Warranty</li>
+            <li><b>Tone:</b> practical, no aggression, concrete numbers and timelines</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="seo-card">
+        <h3><span data-l="ru">Как выбрать диван</span><span data-l="en">How to choose a sofa</span></h3>
+        <div class="url">/blog/kak-vybrat-divan/ · informational · <span data-l="ru">Написать статью</span><span data-l="en">Write article</span></div>
+        <div class="field">
+          <div class="k">title</div>
+          <div class="v"><span data-l="ru">Как выбрать диван: гайд по размеру, материалу, наполнителю</span><span data-l="en">How to choose a sofa: size, material, filling guide</span> <span class="len">58</span></div>
+        </div>
+        <div class="field">
+          <div class="k">h1</div>
+          <div class="v"><span data-l="ru">Как выбрать диван — полное руководство</span><span data-l="en">How to choose a sofa — complete guide</span> <span class="len">38</span></div>
+        </div>
+        <div class="field">
+          <div class="k">description</div>
+          <div class="v"><span data-l="ru">Разбираем, на что смотреть при выборе дивана: размер, механизм, обивка, наполнитель. С чек-листом и сравнением материалов от обивщиков и продавцов.</span><span data-l="en">What to check when picking a sofa: size, mechanism, upholstery, filling. With a checklist and material comparison from upholsterers and sellers.</span> <span class="len">152</span></div>
+        </div>
+        <div class="brief">
+          <div class="k" data-l="ru">briefs/kak-vybrat-divan-3.md</div>
+          <div class="k" data-l="en">briefs/kak-vybrat-divan-3.md</div>
+          <ul data-l="ru">
+            <li><b>Аудитория:</b> покупатель в research-фазе, ещё не определился</li>
+            <li><b>Структура:</b> ## Размер под комнату · ## Механизм трансформации · ## Обивка · ## Наполнитель · ## Чек-лист перед покупкой</li>
+            <li><b>Тон:</b> экспертный, без продажи; цель — закрыть возражения</li>
+          </ul>
+          <ul data-l="en">
+            <li><b>Audience:</b> buyer in research phase, undecided</li>
+            <li><b>Structure:</b> ## Size for the room · ## Transformation mechanism · ## Upholstery · ## Filling · ## Pre-purchase checklist</li>
+            <li><b>Tone:</b> expert, no selling; goal — close objections</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="trust">
@@ -423,8 +511,8 @@ footer a:hover{border-bottom-color:var(--ink)}
       <div>
         <div class="name" data-l="ru">интерфейс</div>
         <div class="name" data-l="en">interface</div>
-        <div class="val" data-l="ru"><span class="term" data-tip="Командная строка.">CLI</span> <code class="mono">python -m agents.cli</code> и Telegram-бот: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>.</div>
-        <div class="val" data-l="en"><span class="term" data-tip="Command-line interface.">CLI</span> <code class="mono">python -m agents.cli</code> plus Telegram bot: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>.</div>
+        <div class="val" data-l="ru"><span class="term" data-tip="Командная строка.">CLI</span> <code class="mono">python -m agents.cli</code> и Telegram-бот: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>. Артефакты: <code class="mono">decisions.csv</code> (SEO-колонки включены), <code class="mono">decisions.md</code>, <code class="mono">queries.csv</code>, <code class="mono">briefs/{slug}.md</code> для копирайтера.</div>
+        <div class="val" data-l="en"><span class="term" data-tip="Command-line interface.">CLI</span> <code class="mono">python -m agents.cli</code> plus Telegram bot: <code class="mono">/run</code>, <code class="mono">/status</code>, <code class="mono">/export csv|md|queries|state</code>. Artifacts: <code class="mono">decisions.csv</code> (SEO columns included), <code class="mono">decisions.md</code>, <code class="mono">queries.csv</code>, <code class="mono">briefs/{slug}.md</code> for copywriters.</div>
       </div>
       <div>
         <div class="name">stack</div>
