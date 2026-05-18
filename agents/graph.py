@@ -78,11 +78,17 @@ def size_guard(state: PipelineState) -> Literal["cluster", "label"]:
 
 
 def size_guard_apply(state: PipelineState) -> dict:
-    """Side-effect для re-cluster ветки: ослабляет distance_threshold."""
-    threshold = state.get("distance_threshold", 0.20) + THRESHOLD_RELAX_DELTA
+    """Side-effect для re-cluster ветки: уменьшает distance_threshold.
+
+    Per `core.cluster.cluster_queries` docstring: lower distance_threshold →
+    more, smaller clusters. Когда кластеров < MIN_CLUSTERS_AFTER_CLUSTER —
+    надо БОЛЬШЕ кластеров, значит threshold надо двигать ВНИЗ.
+    """
+    prev = state.get("distance_threshold", 0.20)
+    threshold = max(0.05, prev - THRESHOLD_RELAX_DELTA)
     decisions = list(state.get("decisions", []))
     decisions.append(
-        f"supervisor: <{MIN_CLUSTERS_AFTER_CLUSTER} кластеров → threshold {threshold:.2f}"
+        f"supervisor: <{MIN_CLUSTERS_AFTER_CLUSTER} кластеров → threshold {prev:.2f}→{threshold:.2f} (lower = more clusters)"
     )
     return {
         "distance_threshold": threshold,

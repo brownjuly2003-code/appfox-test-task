@@ -23,7 +23,7 @@ class PipelineState(TypedDict, total=False):
 
     # Adaptive retry counters
     collect_retries: int  # сколько раз yield_guard уже расширял modifiers
-    cluster_retries: int  # сколько раз size_guard ослаблял threshold
+    cluster_retries: int  # сколько раз size_guard уменьшал threshold (lower → more clusters)
 
     # Intermediate artifacts
     raw_queries: list[str]
@@ -56,4 +56,4 @@ BROADER_MODIFIERS = [
     "купить", "цена", "недорого", "москва", "доставка",
     "в москве", "интернет магазин", "акция",
 ]
-THRESHOLD_RELAX_DELTA = 0.10    # 0.20 → 0.30
+THRESHOLD_RELAX_DELTA = 0.10    # threshold уменьшается на эту дельту (0.20 → 0.10); lower → more clusters

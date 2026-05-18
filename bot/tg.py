@@ -108,7 +108,7 @@ def _run_pipeline_thread(chat_id: int):
     send_msg(chat_id, "Запускаю пайплайн… /status для прогресса.")
 
     cmd = [
-        sys.executable, "run.py",
+        sys.executable, "-m", "agents.cli",
         "--config", str(SEEDS_PATH),
         "--out", str(OUTPUT_DIR),
     ]

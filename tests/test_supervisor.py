@@ -10,10 +10,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agents.graph import build_graph, size_guard, yield_guard
+from agents.graph import build_graph, size_guard, size_guard_apply, yield_guard
 from agents.state import (
     MIN_CLUSTERS_AFTER_CLUSTER,
     PipelineState,
+    THRESHOLD_RELAX_DELTA,
     YIELD_MIN_RATE,
 )
 
@@ -69,6 +70,37 @@ def test_size_guard_respects_max_retries():
         "cluster_retries": 1,  # retry уже потрачен
     }
     assert size_guard(state) == "label"
+
+
+def test_size_guard_apply_decreases_threshold():
+    """Critical direction check: при <MIN кластеров надо БОЛЬШЕ кластеров,
+    значит distance_threshold должен УМЕНЬШАТЬСЯ (per cluster.py docstring:
+    lower threshold → more, smaller clusters). Регрессия 2026-05-18.
+    """
+    prev = 0.20
+    state: PipelineState = {
+        "distance_threshold": prev,
+        "cluster_retries": 0,
+        "decisions": [],
+    }
+    out = size_guard_apply(state)
+    assert out["distance_threshold"] < prev, (
+        f"size_guard moved threshold WRONG WAY: {prev} → {out['distance_threshold']}; "
+        f"должно быть меньше"
+    )
+    assert out["distance_threshold"] == pytest.approx(prev - THRESHOLD_RELAX_DELTA)
+    assert out["cluster_retries"] == 1
+
+
+def test_size_guard_apply_threshold_floor():
+    """При повторных вызовах threshold не должен уходить в ноль / отрицательное."""
+    state: PipelineState = {
+        "distance_threshold": 0.05,
+        "cluster_retries": 0,
+        "decisions": [],
+    }
+    out = size_guard_apply(state)
+    assert out["distance_threshold"] >= 0.05, "threshold не должен уходить ниже floor"
 
 
 def _make_cluster(cluster_id, label, intent, queries):
