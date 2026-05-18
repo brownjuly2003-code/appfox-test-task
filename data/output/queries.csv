@@ -1,0 +1,201 @@
+query,intent,keep,reason,cluster_id,cluster,action,recommended_page
+акция на диваны в ами мебель,irrelevant,False,prohibited brand: ами мебель,,,—,—
+диван-кровать с ортопедическим матрасом купить минск,irrelevant,False,blocked region: минск,,,—,—
+кухонный диван со спальным местом куфар,irrelevant,False,marketplace: куфар,,,—,—
+диван для сна купить минск,irrelevant,False,blocked region: минск,,,—,—
+диван для сна купить спб,irrelevant,False,blocked region: спб,,,—,—
+диван с доставкой по рб,irrelevant,False,blocked region: рб,,,—,—
+купить диван в москве авито,irrelevant,False,marketplace: авито,,,—,—
+угловой диван на кухню куфар,irrelevant,False,marketplace: куфар,,,—,—
+диван недорого купить минск,irrelevant,False,blocked region: минск,,,—,—
+диван недорого рф отзывы,irrelevant,False,geo outside allowed regions,,,—,—
+диван с доставкой минск,irrelevant,False,blocked region: минск,,,—,—
+диван с доставкой спб,irrelevant,False,blocked region: спб,,,—,—
+диван цена в ташкенте,irrelevant,False,geo outside allowed regions,,,—,—
+купить диван ами мебель,irrelevant,False,prohibited brand: ами мебель,,,—,—
+отзывы диваны ами мебель,irrelevant,False,prohibited brand: ами мебель,,,—,—
+распродажа диванов в алматы,irrelevant,False,blocked region: алматы,,,—,—
+угловой диван ами мебель,irrelevant,False,prohibited brand: ами мебель,,,—,—
+акция диваны бишкек,irrelevant,False,blocked region: бишкек,,,—,—
+диван акция киев,irrelevant,False,blocked region: киев,,,—,—
+диван акция минск,irrelevant,False,blocked region: минск,,,—,—
+диван купить днепр,irrelevant,False,blocked region: днепр,,,—,—
+диван купить екатеринбург,irrelevant,False,blocked region: екатеринбург,,,—,—
+диван купить киев,irrelevant,False,blocked region: киев,,,—,—
+диван купить минск,irrelevant,False,blocked region: минск,,,—,—
+диван купить новосибирск,irrelevant,False,blocked region: новосибирск,,,—,—
+диван купить одесса,irrelevant,False,blocked region: одесса,,,—,—
+диван купить спб,irrelevant,False,blocked region: спб,,,—,—
+диван купить харьков,irrelevant,False,blocked region: харьков,,,—,—
+диван недорого киев,irrelevant,False,blocked region: киев,,,—,—
+диван недорого рф,irrelevant,False,geo outside allowed regions,,,—,—
+диван недорого спб,irrelevant,False,blocked region: спб,,,—,—
+диван распродажа днепр,irrelevant,False,blocked region: днепр,,,—,—
+диван распродажа киев,irrelevant,False,blocked region: киев,,,—,—
+диван распродажа минск,irrelevant,False,blocked region: минск,,,—,—
+диван распродажа спб,irrelevant,False,blocked region: спб,,,—,—
+диван цена алматы,irrelevant,False,blocked region: алматы,,,—,—
+диван цена бишкек,irrelevant,False,blocked region: бишкек,,,—,—
+диван цена минск,irrelevant,False,blocked region: минск,,,—,—
+диван цена одесса,irrelevant,False,blocked region: одесса,,,—,—
+диван цена украина,irrelevant,False,blocked region: украина,,,—,—
+диван цена харьков,irrelevant,False,blocked region: харьков,,,—,—
+диван-кровать купить минск,irrelevant,False,blocked region: минск,,,—,—
+купить диван днепр,irrelevant,False,blocked region: днепр,,,—,—
+купить диван киев,irrelevant,False,blocked region: киев,,,—,—
+купить диван минск,irrelevant,False,blocked region: минск,,,—,—
+купить диван спб,irrelevant,False,blocked region: спб,,,—,—
+купить диван украина,irrelevant,False,blocked region: украина,,,—,—
+купить диван харьков,irrelevant,False,blocked region: харьков,,,—,—
+недорого диваны рф,irrelevant,False,geo outside allowed regions,,,—,—
+распродажа диванов екатеринбург,irrelevant,False,blocked region: екатеринбург,,,—,—
+распродажа диванов минск,irrelevant,False,blocked region: минск,,,—,—
+распродажа диванов спб,irrelevant,False,blocked region: спб,,,—,—
+диван для сна с независимым пружинным блоком,commercial,True,Четкий коммерческий запрос с характеристиками,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван-кровать с ортопедическим матрасом для ежедневного использования,commercial,True,Коммерческий запрос с акцентом на функциональность,11,Диваны-кровати ортопедические,Создать,/catalog/divany-krovati-ortopedicheskie/
+диваны в москве купить недорого с доставкой,transactional,True,Явный транзакционный запрос с локацией и условиями,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+угловой диван на кухню со спальным местом,commercial,True,Коммерческий запрос с указанием назначения,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+диван для сна на каждый день,commercial,True,Коммерческий запрос с частотой использования,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна с ортопедическим матрасом,commercial,True,Четкий коммерческий запрос с характеристиками,7,Ортопедические диваны для сна,Создать,/catalog/ortopedicheskie-divany-dlya-sna/
+диваны с доставкой в день заказа,transactional,True,Транзакционный запрос с условиями доставки,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диваны с доставкой по всей россии,transactional,True,Транзакционный запрос с географией,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+купить диван в москве от производителя,transactional,True,Явный транзакционный запрос с локацией и условиями,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+кухонный диван угловой со спальным местом,commercial,True,Коммерческий запрос с указанием назначения,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+белорусская мебель в москве диваны,commercial,False,Запрещенный регион Беларусь,,,—,—
+в москве диван для сна,transactional,True,Транзакционный запрос с локацией,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван в москве от производителя,transactional,True,Явный транзакционный запрос с локацией,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван для сна в москве,transactional,True,Транзакционный запрос с локацией,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна с доставкой,transactional,True,Транзакционный запрос с условиями,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван с доставкой и сборкой,transactional,True,Транзакционный запрос с услугами,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван с доставкой на дом,transactional,True,Транзакционный запрос с условиями,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван с доставкой по россии,transactional,True,Транзакционный запрос с географией,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван-кровать с ортопедическим матрасом аскона,commercial,False,Запрещенный бренд Аскона,,,—,—
+диван-кровать трансформер с ортопедическим матрасом,commercial,True,Четкий коммерческий запрос с характеристиками,12,Диваны-кровати трансформеры,Создать,/catalog/divany-krovati-transformery/
+диваны в москве от производителя,transactional,True,Явный транзакционный запрос с локацией,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диваны с доставкой по россии,transactional,True,Транзакционный запрос с географией,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+кино в москве с диванами,irrelevant,False,Вне тематики бизнеса,,,—,—
+кинотеатры в москве с диванами,irrelevant,False,Вне тематики бизнеса,,,—,—
+купить в москве диван кровать,transactional,True,Транзакционный запрос с локацией,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+купить в москве диван недорого,transactional,True,целевой запрос с локацией и ценовым интентом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+купить диван в москве hoff,navigational,False,запрещённый бренд в запросе,,,—,—
+купить диван в москве аскона,navigational,False,запрещённый бренд в запросе,,,—,—
+купить диван в москве раскладной,transactional,True,целевой запрос с локацией и типом товара,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+кухонный диван прямой с ящиком,commercial,True,запрос на конкретный продукт с характеристиками,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван со спальным местом,commercial,True,запрос на продукт с функциональным интентом,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+магазин хофф в москве диваны,navigational,False,запрещённый бренд в запросе,,,—,—
+с доставкой диван для сна,transactional,True,целевой запрос с интентом покупки и доставки,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+акция диван для сна,commercial,True,запрос на акции и скидки на целевой товар,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+акция диваны со скидкой,commercial,True,запрос на акции и скидки на товар,8,Акции на диваны,Создать,/catalog/akcii-na-divany/
+акция на диваны пинскдрев,navigational,False,запрещённый бренд в запросе,,,—,—
+в москве кухонный диван,transactional,True,целевой локальный запрос с типом товара,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+в москве угловой диван,transactional,True,целевой локальный запрос с типом товара,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+диван в москве недорого,transactional,True,целевой запрос с локацией и ценовым интентом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван для сна акция,commercial,True,запрос на акции для целевого товара,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна аскона,navigational,False,запрещённый бренд в запросе,,,—,—
+диван для сна купить,transactional,True,целевой коммерческий запрос без локации,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна недорого,transactional,True,целевой запрос с ценовым интентом,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна ортопедический,commercial,True,запрос на продукт с характеристиками,7,Ортопедические диваны для сна,Создать,/catalog/ortopedicheskie-divany-dlya-sna/
+диван для сна отзывы,informational,False,"информационный запрос, не коммерческий",,,—,—
+диван для сна распродажа,commercial,True,запрос на распродажи целевого товара,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван для сна цена,commercial,True,запрос на цены целевого товара,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван карина акция аскона,navigational,False,запрещённый бренд в запросе,,,—,—
+диван кровать в москве,transactional,True,целевой запрос с локацией и типом товара,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван недорого купить москва,transactional,True,целевой запрос с локацией и ценовым интентом,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+диван распродажа выставочных образцов,commercial,True,целевой коммерческий запрос с распродажей,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+диван ру в москве,navigational,False,запрещённый бренд (РУ),,,—,—
+диван с доставкой купить,transactional,True,коммерческий запрос с покупкой и доставкой,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван с доставкой москва,transactional,True,коммерческий запрос с доставкой в Москве,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван с доставкой сегодня,transactional,True,коммерческий запрос срочной доставки,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван цена в узбекистане,irrelevant,False,регион вне бизнес-модели,,,—,—
+диван-кровать с ортопедическим матрасом,commercial,True,целевой коммерческий запрос с уточнением,11,Диваны-кровати ортопедические,Создать,/catalog/divany-krovati-ortopedicheskie/
+диваны недорого московская область,commercial,True,коммерческий запрос с ценовым интентом,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+купить в москве диван,transactional,True,коммерческий запрос с покупкой в Москве,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+купить диван в москве,transactional,True,коммерческий запрос с покупкой в Москве,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+купить диван для сна,transactional,True,коммерческий запрос с покупкой для сна,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+кухонный диван в москве,commercial,True,целевой коммерческий запрос по сегменту,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван с доставкой,transactional,True,коммерческий запрос с доставкой,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+недорого диван для сна,commercial,True,коммерческий запрос с ценовым интентом,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+отзывы диван для сна,informational,False,информационный запрос без коммерции,,,—,—
+отзывы диван клик кляк,informational,False,информационный запрос без коммерции,,,—,—
+распродажа диван для сна,commercial,True,целевой коммерческий запрос с распродажей,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+распродажа диванов в кирове,local,False,регион вне бизнес-модели,,,—,—
+распродажа диванов в омске,local,False,регион вне бизнес-модели,,,—,—
+распродажа диванов в ростове-на-дону,local,False,регион вне бизнес-модели,,,—,—
+с доставкой кухонный диван,transactional,True,коммерческий запрос с доставкой,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+с доставкой угловой диван,transactional,True,коммерческий запрос с доставкой,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван в гостиную,commercial,True,целевой коммерческий запрос по типу,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван в москве,commercial,True,целевой коммерческий запрос по типу и региону,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+угловой диван на кухню,commercial,True,целевой коммерческий запрос по сегменту,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+угловой диван с доставкой,transactional,True,Высокий коммерческий интент с геотаргетингом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+цена диван для сна,commercial,True,Коммерческий запрос с уточнением назначения,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+цена диван кровать трансформер,commercial,True,Коммерческий запрос с указанием типа товара,12,Диваны-кровати трансформеры,Создать,/catalog/divany-krovati-transformery/
+цена дивана в украине,irrelevant,False,Запрос вне региона доставки,,,—,—
+цена дивана пое 2,irrelevant,False,Запрос с брендом конкурентов,,,—,—
+цена диваны угловые раскладные,commercial,True,Коммерческий запрос с уточнением характеристик,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+акция кухонный диван,transactional,True,Высокий коммерческий интент с акцентом на акции,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+акция угловой диван,transactional,True,Высокий коммерческий интент с геотаргетингом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+аскона диваны акция,irrelevant,False,Запрос с брендом конкурентов,,,—,—
+в москве диван,transactional,True,Высокий коммерческий интент с геотаргетингом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+в москве диван-кровать,transactional,True,Высокий коммерческий интент с геотаргетингом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван босс распродажа,irrelevant,False,Запрос с брендом конкурентов,,,—,—
+диван в москве,transactional,True,Высокий коммерческий интент с геотаргетингом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван для сна,commercial,True,Коммерческий запрос с уточнением назначения,1,Диваны для сна,Создать,/catalog/divany-dlya-sna/
+диван карина акция,irrelevant,False,Запрос с брендом конкурентов,,,—,—
+диван кровать акция,transactional,True,Высокий коммерческий интент с акцентом на акции,9,Диваны-кровати со скидками,Обновить,/catalog/divany-krovati/
+диван купить москва,transactional,True,Высокий коммерческий интент с геотаргетингом,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+диван локо акция,irrelevant,False,Запрос с брендом конкурентов,,,—,—
+диван недорого купить,transactional,True,Высокий коммерческий интент с акцентом на цену,13,Недорогие диваны,Создать,/catalog/nedorogie-divany/
+диван недорого москва,transactional,True,Высокий коммерческий интент с геотаргетингом,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+диван распродажа москва,transactional,True,Высокий коммерческий интент с геотаргетингом,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+диван с доставкой,transactional,True,Высокий коммерческий интент с геотаргетингом,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+диван угловой акция,transactional,True,Высокий коммерческий интент с акцентом на акции,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+диван цена качество,commercial,True,Коммерческий запрос с акцентом на соотношение цены и качества,15,Диваны цена качество,Создать,/catalog/divany-tsena-kachestvo/
+диван-кровать в москве,transactional,True,Высокий коммерческий интент с геотаргетингом,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диван-кровать с доставкой,transactional,True,Явный коммерческий запрос с доставкой,10,Диваны-кровати с доставкой,Обновить,/catalog/divany-krovati/
+диваны в москве,local,True,Локальный коммерческий запрос по Москве,2,Диваны в Москве,Создать,/catalog/divany-v-moskve/
+диваны недорого москва,commercial,True,Коммерческий запрос с ценовым интентом,5,Недорогие диваны в Москве,Обновить,/catalog/uglovye-divany/
+купить диван акция,transactional,True,Явный коммерческий запрос с акцией,8,Акции на диваны,Создать,/catalog/akcii-na-divany/
+купить диван кровать,transactional,True,Явный коммерческий запрос на покупку,14,Диваны-кровати,Обновить,/catalog/divany-krovati/
+купить кухонный диван,transactional,True,Явный коммерческий запрос на покупку,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+купить угловой диван,transactional,True,Явный коммерческий запрос на покупку,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+кухонный диван акция,commercial,True,Коммерческий запрос с интентом на акцию,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван купить,transactional,True,Явный коммерческий запрос на покупку,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван недорого,commercial,True,Коммерческий запрос с ценовым интентом,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван отзывы,informational,False,Информационный запрос без коммерческого интента,,,—,—
+кухонный диван раскладной,commercial,True,Коммерческий запрос с уточнением характеристик,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван распродажа,commercial,True,Коммерческий запрос с интентом на распродажу,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+кухонный диван угловой,commercial,True,Коммерческий запрос с уточнением типа,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диван цена,commercial,True,Коммерческий запрос с ценовым интентом,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+кухонный диванчик прямой,commercial,True,Коммерческий запрос с уточнением типа,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+лазурит диваны акция,commercial,False,Запрещённый бренд в prohibited_brands,,,—,—
+недорого диван ру,commercial,False,Запрещённый маркетплейс в marketplaces,,,—,—
+недорого кухонный диван,commercial,True,Коммерческий запрос с ценовым интентом,0,Кухонные диваны,Создать,/catalog/kuhonnye-divany/
+недорого угловой диван,commercial,True,Коммерческий запрос с ценовым интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+отзывы диван бай,informational,False,Информационный запрос без коммерческого интента,,,—,—
+отзывы диван босс,informational,False,Информационный запрос без коммерческого интента,,,—,—
+отзывы диван ру,informational,False,Запрещённый маркетплейс в marketplaces,,,—,—
+отзывы диванчик ру,informational,False,Запрещённый маркетплейс в marketplaces,,,—,—
+отзывы диваны moon,informational,False,Информационный запрос без коммерческого интента,,,—,—
+отзывы диваны аскона,informational,False,запрос о бренде конкурентов,,,—,—
+отзывы кухонный диван,informational,False,информационный запрос без коммерции,,,—,—
+отзывы угловой диван,informational,False,информационный запрос без коммерции,,,—,—
+пинскдрев диван акция,commercial,False,запрос о бренде конкурентов,,,—,—
+распродажа диван кровать,transactional,True,коммерческий запрос с транзакционным интентом,9,Диваны-кровати со скидками,Обновить,/catalog/divany-krovati/
+распродажа диван ру,transactional,False,запрос содержит маркетплейс,,,—,—
+распродажа диванов красноярск,local,False,регион не входит в целевой,,,—,—
+распродажа диванов москва,transactional,True,коммерческий запрос с транзакционным интентом,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+распродажа кухонный диван,transactional,True,коммерческий запрос с транзакционным интентом,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+распродажа угловой диван,transactional,True,коммерческий запрос с транзакционным интентом,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+с доставкой диван,transactional,True,коммерческий запрос с транзакционным интентом,4,Диваны с доставкой,Создать,/catalog/divany-s-dostavkoj/
+с доставкой диван-кровать,transactional,True,коммерческий запрос с транзакционным интентом,10,Диваны-кровати с доставкой,Обновить,/catalog/divany-krovati/
+угловой диван акция,commercial,True,коммерческий запрос с коммерческим интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван кровать,commercial,True,коммерческий запрос с коммерческим интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван купить,transactional,True,коммерческий запрос с транзакционным интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван недорого,commercial,True,коммерческий запрос с коммерческим интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван отзывы,informational,False,информационный запрос без коммерции,,,—,—
+угловой диван размеры,informational,False,информационный запрос без коммерции,,,—,—
+угловой диван раскладной,commercial,True,коммерческий запрос с коммерческим интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+угловой диван распродажа,transactional,True,коммерческий запрос с транзакционным интентом,6,Распродажа диванов,Создать,/catalog/rasprodazha-divanov/
+угловой диван цена,commercial,True,коммерческий запрос с коммерческим интентом,3,Угловые диваны,Обновить,/catalog/uglovye-divany/
+хофф диваны акция,commercial,False,запрос о бренде конкурентов,,,—,—
+цена дивана бу,transactional,False,запрос о б/у товаре,,,—,—

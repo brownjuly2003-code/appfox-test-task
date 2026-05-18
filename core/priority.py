@@ -13,7 +13,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from .cluster import Cluster
+from .cluster import DEFAULT_FACETS, Cluster
 
 
 INTENT_WEIGHTS = {
@@ -200,6 +200,47 @@ def _page_type(url: str) -> str:
     return "other"
 
 
+def _slug_to_ru(slug_or_url: str) -> str:
+    """Translit `/catalog/uglovye-divany/` → «угловые диваны» для facet-конфликта.
+
+    Грубая обратная транслитерация — для проверки взаимоисключающих фасетов
+    («угловой» vs «прямой») этого достаточно; точное соответствие не нужно.
+    """
+    last = slug_or_url.strip("/").split("/")[-1]
+    text = last.lower().replace("-", " ")
+    lat_to_ru = {
+        "sh": "ш", "ch": "ч", "yu": "ю", "ya": "я", "zh": "ж", "yo": "ё",
+        "a": "а", "b": "б", "v": "в", "g": "г", "d": "д", "e": "е", "z": "з",
+        "i": "и", "y": "ы", "k": "к", "l": "л", "m": "м", "n": "н", "o": "о",
+        "p": "п", "r": "р", "s": "с", "t": "т", "u": "у", "f": "ф", "h": "х",
+        "c": "ц",
+    }
+    for src, dst in sorted(lat_to_ru.items(), key=lambda kv: -len(kv[0])):
+        text = text.replace(src, dst)
+    return text
+
+
+def _detect_facets(text: str) -> set[str]:
+    """Какие facet-теги из DEFAULT_FACETS присутствуют в тексте."""
+    text_l = text.lower()
+    return {
+        name for name, triggers in DEFAULT_FACETS.items()
+        if any(t in text_l for t in triggers)
+    }
+
+
+def _facets_conflict(cluster_text: str, page_url: str) -> bool:
+    """True если cluster и page несут взаимоисключающие фасеты.
+
+    Закрывает регрессию «Угловые диваны в Москве» → `/catalog/pryamye-divany/`:
+    embedding sim ловит «диваны», но «угловой» и «прямой» — несовместимые
+    facet-теги (даже при cosine ≥0.90 такой match вреден).
+    """
+    cf = _detect_facets(cluster_text)
+    pf = _detect_facets(_slug_to_ru(page_url))
+    return bool(cf and pf and not (cf & pf))
+
+
 _INTENT_TO_ALLOWED_PAGE_TYPES = {
     "commercial":    {"catalog"},
     "transactional": {"catalog"},
@@ -222,13 +263,18 @@ def decide_action(
 ) -> tuple[str, str | None, float]:
     """Return (action, matched_existing_url_or_none, page_similarity).
 
-    Matching cascade — INTENT-AWARE:
+    Matching cascade — INTENT-AWARE + FACET-GUARDED:
       Сначала фильтруем `existing_pages` по допустимым page_type для intent кластера
       (commercial/transactional → только /catalog/; informational/comparative → только blog/faq).
       Внутри допустимого подмножества:
-        1) exact slug-substring match
-        2) embedding similarity (если есть embeddings)
-    Это предотвращает unrelated cross-bucket match (угловые диваны → /blog/kak-vybrat-divan/).
+        1) exact slug-substring match (+ facet-guard)
+        2) embedding similarity ≥0.85 (если есть embeddings) + facet-guard
+      Facet-guard важнее threshold: для русского multilingual MiniLM cosine
+      между «угловые диваны» и «прямые диваны» ≈0.82, а между «угловые в Москве»
+      и «угловые» тоже ≈0.82 — embedding не отличает антоним-фасеты. Защита —
+      `DEFAULT_FACETS`: если facet-tag кластера ({"угловой"}) не пересекается
+      с facet-tag страницы ({"прямой"}) — match блокируется. Закрывает
+      регрессию «Угловые диваны в Москве» → `/catalog/pryamye-divany/`.
     """
     slug = getattr(cluster, "slug", "") or ""
     intent = cluster.intent
@@ -242,26 +288,37 @@ def decide_action(
         if _page_type(url) in allowed_types
     ]
 
+    cluster_text = (cluster.label or "") + " " + " ".join(cluster.queries[:10])
+
     matched: str | None = None
     best_sim: float = 0.0
 
-    # 1) slug-substring внутри eligible
+    # 1) slug-substring внутри eligible (с facet-guard — slug может совпасть, но фасет
+    # не должен противоречить — для надёжности проверяем и здесь)
     if slug:
         for _, url in eligible:
-            if slug in url.lower():
+            if slug in url.lower() and not _facets_conflict(cluster_text, url):
                 matched = url
                 break
 
-    # 2) embedding sim внутри eligible
+    # 2) embedding sim внутри eligible + facet-guard
     if matched is None and page_embeddings is not None and cluster_embedding is not None and eligible:
         import numpy as np
         idxs = [i for i, _ in eligible]
         sub_emb = page_embeddings[idxs]
         sims = sub_emb @ cluster_embedding
-        local_idx = int(np.argmax(sims))
-        best_sim = float(sims[local_idx])
-        if best_sim >= similarity_threshold:
-            matched = existing_pages[idxs[local_idx]]
+        # сортируем по убыванию sim — берём первый кандидат, прошедший facet-guard
+        order = np.argsort(-sims)
+        for local_idx in order:
+            sim_val = float(sims[local_idx])
+            if sim_val < similarity_threshold:
+                break  # дальше будет только хуже
+            candidate = existing_pages[idxs[int(local_idx)]]
+            if not _facets_conflict(cluster_text, candidate):
+                matched = candidate
+                best_sim = sim_val
+                break
+            best_sim = max(best_sim, sim_val)  # храним для отчёта, но не матчим
 
     if matched:
         return "Обновить", matched, best_sim

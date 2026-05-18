@@ -62,7 +62,7 @@ body[data-lang="en"] [data-l="ru"]{display:none}
 }
 .term:hover::after, .term:focus::after{opacity:1; visibility:visible; transform:translateX(-50%) translateY(0)}
 .term:hover::before, .term:focus::before{opacity:1; visibility:visible}
-@media(max-width:520px){.term::after{max-width:240px}}
+@media(max-width:520px){.term::after, .term::before{display:none}}
 
 /* top bar */
 .bar{position:sticky; top:0; z-index:50; background:rgba(255,255,255,.92); backdrop-filter:saturate(140%) blur(8px); border-bottom:1px solid var(--line)}
@@ -149,7 +149,12 @@ section{padding:80px 0; border-top:1px solid var(--line)}
 .tab th{text-align:left; font-weight:500; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.1em; padding:10px 14px 10px 0; border-bottom:1px solid var(--line)}
 .tab td{padding:14px 14px 14px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.5}
 .tab td b{font-weight:600}
-.tab td.mono{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-2)}
+.tab td.mono{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--ink-2); word-break:break-all}
+@media(max-width:520px){
+  .tab{table-layout:fixed; font-size:12.5px}
+  .tab th, .tab td{word-break:break-word; padding-right:6px}
+  .tab td.mono{font-size:11px}
+}
 
 /* trust grid */
 .trust{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:8px}
@@ -258,9 +263,9 @@ footer a:hover{border-bottom-color:var(--ink)}
     <div>
       <div class="scope" data-l="ru">тесты</div>
       <div class="scope" data-l="en">tests</div>
-      <div class="hg-num num">42 <span class="sub">/ 42</span></div>
-      <div class="hg-lab" data-l="ru">Все автотесты (<span class="term" data-tip="Стандартный инструмент автотестов в Python.">pytest</span>) проходят. Тринадцать — про supervisor: guards, threshold direction, retry budgets, end-to-end. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку.</div>
-      <div class="hg-lab" data-l="en">All <span class="term" data-tip="The standard Python test runner.">pytest</span> cases pass. Thirteen exercise supervisor: guards, threshold direction, retry budgets, end-to-end. Nine cover SEO meta: length caps, intent routing, LLM-error fallback.</div>
+      <div class="hg-num num">45 <span class="sub">/ 45</span></div>
+      <div class="hg-lab" data-l="ru">Все автотесты (<span class="term" data-tip="Стандартный инструмент автотестов в Python.">pytest</span>) проходят. Тринадцать — про supervisor: guards, threshold direction, retry budgets, end-to-end. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Три — про facet-guard в landing matching.</div>
+      <div class="hg-lab" data-l="en">All <span class="term" data-tip="The standard Python test runner.">pytest</span> cases pass. Thirteen exercise supervisor: guards, threshold direction, retry budgets, end-to-end. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Three cover facet-guard in landing matching.</div>
     </div>
   </div>
 
@@ -499,8 +504,8 @@ footer a:hover{border-bottom-color:var(--ink)}
     <div class="trust">
       <div>
         <div class="name">pytest</div>
-        <div class="val" data-l="ru"><b class="num">42 / 42</b> проходят. Тринадцать тестов — про supervisor: компиляция графа, обе guard-функции, направление threshold (регрессия 2026-05-18), retry-бюджеты, end-to-end с подменёнными узлами, новый <code class="mono">seo_node</code>. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Остальные 20 — про правила, матчинг и склейку кластеров.</div>
-        <div class="val" data-l="en"><b class="num">42 / 42</b> pass. Thirteen exercise supervisor: graph compile, both guards, threshold direction (2026-05-18 regression fix), retry budgets, end-to-end with mocked nodes, new <code class="mono">seo_node</code>. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Twenty cover rules, matching, cluster merging.</div>
+        <div class="val" data-l="ru"><b class="num">45 / 45</b> проходят. Тринадцать тестов — про supervisor: компиляция графа, обе guard-функции, направление threshold (регрессия 2026-05-18), retry-бюджеты, end-to-end, новый <code class="mono">seo_node</code>. Девять — про SEO-мету: лимиты длин, intent-routing, fallback на LLM-ошибку. Три — про facet-guard в landing matching («угловые» vs «прямые» больше не путаются). Остальные 20 — про правила, матчинг и склейку кластеров.</div>
+        <div class="val" data-l="en"><b class="num">45 / 45</b> pass. Thirteen exercise supervisor: graph compile, both guards, threshold direction (2026-05-18 regression), retry budgets, end-to-end, new <code class="mono">seo_node</code>. Nine cover SEO meta: length caps, intent routing, LLM-error fallback. Three cover the landing-matching facet-guard (corner vs straight sofas no longer collide). Twenty cover rules, matching, cluster merging.</div>
       </div>
       <div>
         <div class="name" data-l="ru">демо-прогон</div>

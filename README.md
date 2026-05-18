@@ -261,3 +261,13 @@ Tests: 20 → 31 pass (+ 11 supervisor tests).
 В графе: новый узел `seo` между `gap` и `output`. `output_node` инжектит `seo_title`/`seo_h1`/`seo_description` в строки CSV/MD. CLI флаг `--no-seo` отключает шаг (быстрее на ~30-60с). На LLMError pipeline не падает — пустые поля.
 
 Tests: 31 → 42 pass (+9 в `test_seo_meta.py`, +2 в `test_supervisor.py`).
+
+### v1.4 — facet-guard и UI-фиксы (2026-05-18)
+
+Закрыты замечания внешнего ревью 7.5/10:
+
+1. **Landing matching: facet-guard** — `decide_action` теперь блокирует match если cluster и page несут взаимоисключающие фасеты из `DEFAULT_FACETS` (угловой vs прямой, кухонный vs для-сна, и т.д.). Регрессия «Угловые диваны в Москве» → `/catalog/pryamye-divany/` закрыта. Сам threshold вернули к 0.85 — для русского multilingual MiniLM cosine 0.81–0.83 одинаково низкий и для «своих» и для «чужих»; реальная защита — фасеты, не cutoff. `core/priority.py:_facets_conflict`, +2 теста в `test_priority_matching.py`.
+2. **Mobile overflow 390→455px** — таблица решений раздувалась на mono-URL и невидимые `.term::after` tooltip'ы держали layout-width. На `max-width:520px` таблица переключается в `table-layout:fixed`, mono-ячейки получают `word-break:break-all`, tooltip-pseudo скрываются. Проверено через Playwright на 360px и 390px viewports.
+3. **Demo-артефакты синхронизированы** — `data/output/decisions.csv` (с SEO-колонками), `decisions.md` и `briefs/*.md` теперь закоммичены как демо-snapshot, чтобы презентация и репо не расходились. `raw_cleaned.json` остался в `.gitignore`.
+
+Tests: 42 → 45 pass.

@@ -5,8 +5,8 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
-data/output/*.csv
-data/output/*.md
+# data/output/ — demo snapshot закоммичен как доказательство SEO-колонок и briefs/.
+# raw_cleaned.json большой и шумный — игнорируем.
 data/output/raw_cleaned.json
 data/seeds.yaml.bak
 data/state/

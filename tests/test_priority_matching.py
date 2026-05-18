@@ -81,6 +81,65 @@ def test_score_confidence_with_real_metrics():
     assert scoring["score_mode"] in ("production", "mixed")
 
 
+def test_facet_conflict_blocks_uglovye_to_pryamye():
+    """Регрессия 2026-05-18: 'Угловые диваны в Москве' (embedding cosine высокий
+    с любой страницей про диваны) НЕ должно матчиться на `/catalog/pryamye-divany/`,
+    потому что фасеты `угловой` и `прямой` взаимоисключающие.
+    """
+    from core.cluster import embed
+    c = Cluster(cluster_id=0, label="Угловые диваны в Москве", intent="commercial",
+                queries=["угловой диван москва", "купить угловой диван"])
+    c.slug = "uglovye-divany-moskva"  # такого slug в pages нет → slug-substring не сработает
+    pages = ["/catalog/pryamye-divany/", "/catalog/kuhonnye-divany/"]
+    # реальный embedding — high cosine между «угловые диваны в Москве» и «прямые диваны»
+    page_emb = embed([
+        "прямые диваны",
+        "кухонные диваны",
+    ])
+    cluster_emb = embed([" ".join(c.queries)])[0]
+    action, matched, sim = decide_action(
+        c, pages,
+        page_embeddings=page_emb,
+        cluster_embedding=cluster_emb,
+    )
+    assert action == "Создать", (
+        f"facet-guard сломан: 'Угловые диваны' матчатся на {matched} (sim={sim:.3f})"
+    )
+    assert matched is None
+
+
+def test_facet_match_when_same_facet():
+    """Negative control: facet-guard НЕ блокирует match, если facet одинаковый.
+    'Угловые диваны' через slug-substring → /catalog/uglovye-divany/ должно сматчиться.
+    """
+    c = Cluster(cluster_id=0, label="Угловые диваны для сна", intent="commercial",
+                queries=["угловой диван для сна", "угловой ортопедический диван"])
+    # slug совпадает с существующей страницей — slug-substring должен пропустить
+    c.slug = "uglovye-divany"
+    pages = ["/catalog/uglovye-divany/", "/catalog/pryamye-divany/"]
+    action, matched, _ = decide_action(c, pages)
+    assert action == "Обновить"
+    assert matched == "/catalog/uglovye-divany/"
+
+
+def test_facet_guard_on_slug_substring():
+    """slug-substring совпал, но facet-guard должен заблокировать.
+    Например, кластер про угловые диваны: cluster.slug='divany-uglovye',
+    page='/catalog/divany-pryamye/' — оба содержат 'divany', slug сам не
+    содержится в page, всё ок. Но если бы случайный slug содержал 'divany' и
+    matched через substring — facet-guard защищает.
+    """
+    c = Cluster(cluster_id=0, label="Угловые диваны Москва", intent="commercial",
+                queries=["угловой диван москва", "купить угловой диван"])
+    # slug, который случайно содержится в URL прямых диванов (синтетический сценарий)
+    c.slug = "divany"
+    pages = ["/catalog/pryamye-divany/"]
+    action, matched, _ = decide_action(c, pages)
+    # slug-substring сработал бы (divany in pryamye-divany), но facet-guard блокирует
+    assert action == "Создать", f"facet-guard на slug-ветке не сработал: matched={matched}"
+    assert matched is None
+
+
 def test_score_confidence_without_metrics():
     c = Cluster(cluster_id=0, label="Угловые диваны", intent="commercial",
                 queries=["угловой диван"] * 5)
