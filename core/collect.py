@@ -149,8 +149,12 @@ def collect_all(
     *,
     autosuggest_per_seed: bool = True,
     use_google: bool = False,
-) -> list[str]:
-    """Full collection: seeds + seeds×modifiers + autosuggest(seed,modified) + competitor cats."""
+    cached_comp_pages: list[str] | None = None,
+) -> tuple[list[str], list[str]]:
+    """Full collection: seeds + seeds×modifiers + autosuggest(seed,modified) + competitor cats.
+
+    Returns (queries, comp_pages). Если cached_comp_pages передан — переиспользует, не скрейпит повторно.
+    """
     bag: set[str] = set()
     bag.update(s.strip().lower() for s in seeds if s.strip())
 
@@ -168,11 +172,16 @@ def collect_all(
                 for s in google_autosuggest(q):
                     bag.add(s.lower())
 
-    for url in competitor_urls:
-        for cat in fetch_competitor_categories(url):
-            bag.add(cat.lower())
+    if cached_comp_pages is None:
+        comp_pages: list[str] = []
+        for url in competitor_urls:
+            comp_pages.extend(fetch_competitor_categories(url))
+    else:
+        comp_pages = list(cached_comp_pages)
 
-    return sorted(bag)
+    bag.update(p.lower() for p in comp_pages)
+
+    return sorted(bag), comp_pages
 
 
 # ---------------- Stubs for real-volume sources ----------------

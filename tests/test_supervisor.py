@@ -116,14 +116,15 @@ def test_end_to_end_with_mocked_nodes(monkeypatch, tmp_path):
     from core import gap as gap_mod
 
     # 1. Mock collect (15 raw queries — достаточно чтобы пройти clean yield_guard)
+    _fake_queries = ["диван угловой купить", "диван прямой цена", "диван кухонный москва",
+                    "диван трансформер", "ортопедический диван",
+                    "диван для сна", "диван доставка",
+                    "диван-кровать", "диван акция", "диван недорого",
+                    "купить угловой диван", "диван москва доставка", "диван для гостиной",
+                    "диван для офиса", "диван бесплатно"]
     monkeypatch.setattr(
         nodes.collect_mod, "collect_all",
-        lambda **kw: ["диван угловой купить", "диван прямой цена", "диван кухонный москва",
-                      "диван трансформер", "ортопедический диван",
-                      "диван для сна", "диван доставка",
-                      "диван-кровать", "диван акция", "диван недорого",
-                      "купить угловой диван", "диван москва доставка", "диван для гостиной",
-                      "диван для офиса", "диван бесплатно"]
+        lambda **kw: (_fake_queries, [])
     )
     monkeypatch.setattr(
         nodes.collect_mod, "fetch_competitor_categories",
@@ -215,8 +216,8 @@ def test_end_to_end_yield_guard_fires(monkeypatch, tmp_path):
         n_modifiers = len(kw.get("modifiers", []))
         # Тривиальный сигнал: если modifiers расширены — больше данных
         if n_modifiers > 3:
-            return [f"q{i}" for i in range(30)]
-        return [f"q{i}" for i in range(10)]
+            return [f"q{i}" for i in range(30)], []
+        return [f"q{i}" for i in range(10)], []
     monkeypatch.setattr(nodes.collect_mod, "collect_all", fake_collect)
     monkeypatch.setattr(nodes.collect_mod, "fetch_competitor_categories", lambda url: [])
 

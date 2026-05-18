@@ -22,7 +22,6 @@ data/
   seeds.yaml    # бизнес-контекст + seeds + modifiers + конкуренты + existing_pages + brand-bans
   state/core.json  # сохранённое предыдущее ядро для gap-анализа
   output/       # decisions.csv, decisions.md, queries.csv, raw_cleaned.json
-run.py
 ```
 
 ## Соответствие ТЗ
@@ -40,7 +39,7 @@ run.py
 | **Замкнутый цикл расширения** | `gap.diff_with_previous` сравнивает текущие центроиды с сохранённым ядром (cosine ≥0.75 = existing/shifted, иначе new); `diff_with_competitors` — vs категории конкурентов | `gap.py` |
 | **Каннибализация** | для каждого кластера: max(cosine) с другими центроидами (`fill_diagonal(0)`) → отрицательный вес в Priority Score | `output.py:build_decision_rows` |
 | **Управление: UI или Telegram-бот** | `bot/tg.py`: `/run` (фон), `/status` (текущий шаг), `/export csv\|md\|queries\|state\|raw`, `/seeds`, `/upload_seeds` (replace через caption) | `bot/tg.py` |
-| **Иерархия агентов** | LangGraph `StateGraph` с supervisor-узлами (`agents/graph.py`): collect → clean → [yield_guard] → cluster → [size_guard] → label → merge → gap → output. Гарды принимают однократное adaptive-решение (re-collect с расширенными modifiers / re-cluster с relaxed threshold). Flat-CLI `run.py` сохранён как baseline. | `agents/graph.py` |
+| **Иерархия агентов** | LangGraph `StateGraph` с supervisor-узлами (`agents/graph.py`): collect → clean → [yield_guard] → cluster → [size_guard] → label → merge → gap → output. Гарды принимают однократное adaptive-решение (re-collect с расширенными modifiers / re-cluster с уменьшенным threshold = больше кластеров). Единственная точка входа — `agents/cli.py`. | `agents/graph.py` |
 
 ## Запуск
 
@@ -49,13 +48,18 @@ python -m venv .venv
 .venv\Scripts\Activate
 pip install -r requirements.txt
 copy .env.example .env  # вписать MISTRAL_API_KEY (+ опц. TG_BOT_TOKEN)
-python run.py --config data/seeds.yaml --out data/output
 
-# LangGraph supervisor (адаптивные ретраи при низкой выживаемости/мало кластеров):
+# Основная точка входа — LangGraph supervisor:
 python -m agents.cli --config data/seeds.yaml --out data/output
 
-# с KeyCollector экспортом (real volume):
-python run.py --keycollector-csv keys.csv
+# с KeyCollector (real volume → score_mode поднимается из demo в mixed):
+python -m agents.cli --keycollector-csv keys.csv
+
+# с экспортом в Google Sheet:
+python -m agents.cli --google-sheet-id <ID> --service-account-json sa.json
+
+# без скрейпа конкурентов (быстрее, без HTTP):
+python -m agents.cli --skip-competitors
 
 # Telegram-бот:
 python -m bot.tg
@@ -96,7 +100,7 @@ Decision log
   • output: 14 rows → data/output/decisions.csv
 ```
 
-Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же, что и в `run.py`. Тесты: `tests/test_supervisor.py` (9 кейсов: компиляция графа, оба гарда независимо, оба end-to-end с замоканными nodes).
+Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же. Тесты: `tests/test_supervisor.py` (11 кейсов: компиляция графа, оба гарда независимо, направление threshold-дельты у size_guard, threshold floor, оба end-to-end с замоканными nodes).
 
 Параметры:
 - `--cluster-threshold 0.20` — мельче кластеры (дефолт)
@@ -185,7 +189,7 @@ Start-Process pythonw -ArgumentList "-m","bot.tg" -WorkingDirectory "D:\appfox_t
 4. **Embedding-matching существующих страниц** — slug-substring был неустойчив (страница `/catalog/divany-krovati/` теряла кластер «диваны-кровати трансформеры»). Cosine с translit-pretty имени страницы при threshold 0.85 даёт стабильный матч.
 5. **Cannibalization как max-cosine между центроидами** — формула из ТЗ требует учитывать. Высокие значения (>0.95) означают, что кластеры пересекаются по запросам и конкурируют за одну страницу — это сигнал смерджить или явно развести.
 6. **State в JSON** — `data/state/core.json` хранит предыдущее ядро. Следующий прогон сравнивает центроиды, размечает `existing/shifted/new`. Это минимальный замкнутый цикл без БД.
-7. **TG-бот как тонкий враппер** — основная логика в `run.py`, бот через `asyncio.create_subprocess_exec` запускает CLI. Никакой дубликат-логики, никакой race-condition.
+7. **TG-бот как тонкий враппер** — основная логика в `agents/cli.py` (LangGraph supervisor), бот через `subprocess.Popen` запускает её. Никакой дубликат-логики, есть watchdog с таймаутом и атомарные обновления `STATE` под `STATE_LOCK`.
 
 ## Roadmap для production
 
@@ -220,7 +224,7 @@ Start-Process pythonw -ArgumentList "-m","bot.tg" -WorkingDirectory "D:\appfox_t
 1. ~~Landing-matcher маппит commercial в /blog/~~ → intent-aware matching через `_INTENT_TO_ALLOWED_PAGE_TYPES`: commercial/transactional ходят только в catalog, informational/comparative — только в blog/faq
 2. ~~Gap analysis считается, но не пишется в CSV/MD~~ → `write_csv`/`write_markdown` теперь несут `gap_status`, `competitor_coverage`, `matched_prev_label`, `new_queries_count`, `lost_queries_count`
 3. ~~Priority Score = proxy-only~~ → `score_cluster` возвращает `confidence` (real-ratio) и `score_mode` (production/mixed/demo); пометки видны в каждой строке CSV
-4. ~~Wordstat/GSC/Sheets не подключены к CLI~~ → флаги `--google-sheet-id` / `--service-account-json` / `--keycollector-csv` в `run.py`
+4. ~~Wordstat/GSC/Sheets не подключены к CLI~~ → флаги `--google-sheet-id` / `--service-account-json` / `--keycollector-csv` в `agents/cli.py`
 5. ~~Дубли кластеров~~ → `cluster.merge_duplicates`: 31 → 16 кластеров после merge
 
 Minor:

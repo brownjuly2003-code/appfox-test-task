@@ -50,7 +50,10 @@ class RunState:
 STATE = RunState()
 ALLOWED: set[int] = set()
 RUN_LOCK = threading.Lock()
+STATE_LOCK = threading.Lock()  # для атомарных обновлений STATE из разных threads
 TOKEN = ""
+
+PIPELINE_TIMEOUT_S = 30 * 60  # 30 минут — комфортный потолок для худшего прогона
 
 
 def api(method: str, **kwargs):
@@ -99,12 +102,22 @@ def allowed(chat_id: int) -> bool:
     return chat_id in ALLOWED
 
 
+def _kill_if_running(proc: subprocess.Popen):
+    """Watchdog callback: жёстко завершает процесс, если он ещё не вышел."""
+    try:
+        if proc.poll() is None:
+            proc.kill()
+    except Exception as e:
+        print(f"[watchdog:err] {e}", flush=True)
+
+
 def _run_pipeline_thread(chat_id: int):
-    STATE.status = "running"
-    STATE.step = "starting"
-    STATE.started_at = time.time()
-    STATE.last_lines = []
-    STATE.returncode = None
+    with STATE_LOCK:
+        STATE.status = "running"
+        STATE.step = "starting"
+        STATE.started_at = time.time()
+        STATE.last_lines = []
+        STATE.returncode = None
     send_msg(chat_id, "Запускаю пайплайн… /status для прогресса.")
 
     cmd = [
@@ -123,34 +136,69 @@ def _run_pipeline_thread(chat_id: int):
             errors="replace",
         )
     except (OSError, ValueError) as e:
-        STATE.status = "error"
-        STATE.step = f"launch failed: {type(e).__name__}"
-        STATE.finished_at = time.time()
-        STATE.returncode = -1
+        with STATE_LOCK:
+            STATE.status = "error"
+            STATE.step = f"launch failed: {type(e).__name__}"
+            STATE.finished_at = time.time()
+            STATE.returncode = -1
         send_msg(chat_id, f"Не удалось запустить пайплайн: {type(e).__name__}: {e}")
         return
+
     assert proc.stdout
-    for line in proc.stdout:
-        line = line.rstrip()
-        if not line:
-            continue
-        STATE.last_lines.append(line)
-        if len(STATE.last_lines) > 50:
-            STATE.last_lines = STATE.last_lines[-50:]
-        for marker in ("Шаг 1:", "Шаг 2:", "Шаг 3:", "Шаг 4:", "Шаг 5:", "Шаг 6:"):
-            if marker in line:
-                STATE.step = line.strip()
-                break
-    proc.wait()
-    STATE.finished_at = time.time()
-    STATE.returncode = proc.returncode
-    STATE.status = "done" if proc.returncode == 0 else "error"
-    elapsed = STATE.finished_at - STATE.started_at
-    send_msg(
-        chat_id,
-        f"Пайплайн завершён: exit={proc.returncode}, {elapsed:.1f}s.\n"
-        f"Готово к /export csv | md | queries | state.",
+
+    # Watchdog: если pipeline превысит PIPELINE_TIMEOUT_S — kill процесса
+    watchdog = threading.Timer(PIPELINE_TIMEOUT_S, _kill_if_running, args=[proc])
+    watchdog.daemon = True
+    watchdog.start()
+
+    # markers — для status-команды (live-progress по узлам супервизора)
+    step_markers = (
+        "collect:", "clean:", "cluster:", "supervisor:",
+        "label:", "merge:", "gap:", "output:",
     )
+
+    try:
+        for line in proc.stdout:
+            line = line.rstrip()
+            if not line:
+                continue
+            with STATE_LOCK:
+                STATE.last_lines.append(line)
+                if len(STATE.last_lines) > 50:
+                    STATE.last_lines = STATE.last_lines[-50:]
+                for marker in step_markers:
+                    if marker in line:
+                        STATE.step = line.strip().lstrip("•").strip()
+                        break
+        proc.wait()
+    finally:
+        watchdog.cancel()
+
+    finished_at = time.time()
+    elapsed = finished_at - STATE.started_at
+    timed_out = elapsed >= PIPELINE_TIMEOUT_S - 1  # допуск на jitter таймера
+
+    with STATE_LOCK:
+        STATE.finished_at = finished_at
+        STATE.returncode = proc.returncode
+        if timed_out:
+            STATE.status = "error"
+            STATE.step = f"timeout after {PIPELINE_TIMEOUT_S}s"
+        else:
+            STATE.status = "done" if proc.returncode == 0 else "error"
+
+    if timed_out:
+        send_msg(
+            chat_id,
+            f"Пайплайн прерван по таймауту ({PIPELINE_TIMEOUT_S}с). "
+            f"Скорее всего, застрял на сетевом запросе. /status для лога.",
+        )
+    else:
+        send_msg(
+            chat_id,
+            f"Пайплайн завершён: exit={proc.returncode}, {elapsed:.1f}s.\n"
+            f"Готово к /export csv | md | queries | state.",
+        )
 
 
 # ---------- handlers ----------

@@ -100,6 +100,39 @@ def diff_with_previous(
     return out
 
 
+def find_removed_clusters(
+    current: list[Cluster],
+    previous_state: dict,
+    *,
+    similarity_threshold: float = 0.75,
+) -> list[dict]:
+    """Кластеры из previous_state, которым в current не нашлось пары → кандидаты на дроп/архив.
+
+    Возвращает список prev-кластеров с полями `label`, `intent`, `queries`, `closest_curr_sim`.
+    """
+    prev_clusters = previous_state.get("clusters", [])
+    if not prev_clusters or not current:
+        return []
+
+    curr_texts = [c.label or " ".join(c.queries[:3]) for c in current]
+    prev_texts = [p.get("label") or " ".join(p.get("queries", [])[:3]) for p in prev_clusters]
+    curr_emb = embed(curr_texts)
+    prev_emb = embed(prev_texts)
+    sims = prev_emb @ curr_emb.T  # prev × curr
+
+    removed: list[dict] = []
+    for i, prev in enumerate(prev_clusters):
+        best_sim = float(np.max(sims[i])) if len(curr_emb) else 0.0
+        if best_sim < similarity_threshold:
+            removed.append({
+                "label": prev.get("label", ""),
+                "intent": prev.get("intent", ""),
+                "queries": list(prev.get("queries", [])),
+                "closest_curr_sim": round(best_sim, 3),
+            })
+    return removed
+
+
 def diff_with_competitors(
     current: list[Cluster],
     competitor_page_titles: list[str],

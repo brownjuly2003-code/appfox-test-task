@@ -27,12 +27,14 @@ class PipelineState(TypedDict, total=False):
 
     # Intermediate artifacts
     raw_queries: list[str]
+    comp_pages: list[str]  # competitor categories, кэшируется в collect → используется в gap (без повторного HTTP)
     cleaned: list[dict[str, Any]]  # CleanedQuery.to_dict()
     clusters: list[Any]  # list[Cluster]
     metrics_by_query: dict[str, dict[str, float]]
     metrics_by_cluster: dict[int, dict[str, float]]
     prev_diff: dict[int, dict[str, Any]]
     comp_diff: dict[int, dict[str, Any]]
+    removed_clusters: list[dict[str, Any]]  # prev-кластеры без match в current → drop/архив
     rows: list[dict[str, Any]]
     state_path: str
 

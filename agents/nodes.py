@@ -19,18 +19,23 @@ from .state import PipelineState
 
 
 def collect_node(state: PipelineState) -> dict[str, Any]:
-    """Сбор raw запросов из seeds + modifiers + competitors. Optional retry с расширенными modifiers."""
+    """Сбор raw запросов из seeds + modifiers + competitors. Optional retry с расширенными modifiers.
+
+    Кэширует competitor pages в state["comp_pages"], чтобы gap_node не скрейпил повторно.
+    """
     seeds = state["seeds"]
     modifiers = state.get("modifiers", [])
     competitors = state.get("competitors", [])
     max_q = state.get("max_queries", 200)
+    cached = state.get("comp_pages")  # переиспользуем при re-collect через yield_guard
 
-    raw = collect_mod.collect_all(
+    raw, comp_pages = collect_mod.collect_all(
         seeds=seeds,
         modifiers=modifiers,
         competitor_urls=competitors,
         autosuggest_per_seed=True,
         use_google=False,
+        cached_comp_pages=cached,
     )
     raw = sorted(set(raw))
     if len(raw) > max_q:
@@ -38,7 +43,7 @@ def collect_node(state: PipelineState) -> dict[str, Any]:
 
     decisions = list(state.get("decisions", []))
     decisions.append(f"collect: {len(raw)} запросов (modifiers={len(modifiers)})")
-    return {"raw_queries": raw, "decisions": decisions}
+    return {"raw_queries": raw, "comp_pages": comp_pages, "decisions": decisions}
 
 
 def clean_node(state: PipelineState) -> dict[str, Any]:
@@ -100,18 +105,21 @@ def gap_node(state: PipelineState) -> dict[str, Any]:
 
     prev = gap_mod.load_state(state_file)
     prev_diff = gap_mod.diff_with_previous(clusters, prev)
+    removed = gap_mod.find_removed_clusters(clusters, prev)
 
-    comp_pages: list[str] = []
-    for url in competitors:
-        comp_pages.extend(collect_mod.fetch_competitor_categories(url))
+    # Переиспользуем comp_pages из collect_node — без повторного HTTP-скрейпа
+    comp_pages: list[str] = state.get("comp_pages", []) or []
     comp_diff = gap_mod.diff_with_competitors(clusters, comp_pages)
 
     new_count = sum(1 for v in prev_diff.values() if v["gap_status"] == "new")
     decisions = list(state.get("decisions", []))
-    decisions.append(f"gap: {new_count} новых vs prev, {len(comp_pages)} competitor pages")
+    decisions.append(
+        f"gap: {new_count} новых vs prev, {len(removed)} убрано, {len(comp_pages)} competitor pages"
+    )
     return {
         "prev_diff": prev_diff,
         "comp_diff": comp_diff,
+        "removed_clusters": removed,
         "decisions": decisions,
     }
 

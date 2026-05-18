@@ -57,31 +57,38 @@ def _call_mistral(model: str, system: str, user: str, temperature: float, max_to
         raise LLMError("MISTRAL_API_KEY missing")
     import requests
 
-    r = requests.post(
-        "https://api.mistral.ai/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {MISTRAL_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        },
-        timeout=60,
-    )
+    try:
+        r = requests.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {MISTRAL_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+            timeout=60,
+        )
+    except requests.RequestException as e:
+        # Сетевая ошибка / DNS / timeout — это тоже LLMError, чтобы сработал fallback
+        raise LLMError(f"Mistral network error: {type(e).__name__}: {e}") from e
     if r.status_code == 429:
         raise LLMError(f"Mistral rate-limited: {r.text[:200]}")
     if r.status_code >= 500:
         raise LLMError(f"Mistral 5xx: {r.status_code} {r.text[:200]}")
     if r.status_code >= 400:
         raise RuntimeError(f"Mistral {r.status_code}: {r.text[:500]}")
-    data = r.json()
-    return data["choices"][0]["message"]["content"]
+    try:
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError) as e:
+        raise LLMError(f"Mistral malformed response: {type(e).__name__}: {e}") from e
 
 
 @retry(
@@ -95,30 +102,36 @@ def _call_groq(model: str, system: str, user: str, temperature: float, max_token
         raise LLMError("GROQ_API_KEY missing")
     import requests
 
-    r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {GROQ_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        },
-        timeout=60,
-    )
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+            timeout=60,
+        )
+    except requests.RequestException as e:
+        raise LLMError(f"Groq network error: {type(e).__name__}: {e}") from e
     if r.status_code == 429:
         raise LLMError(f"Groq rate-limited: {r.text[:200]}")
     if r.status_code >= 500:
         raise LLMError(f"Groq 5xx: {r.status_code} {r.text[:200]}")
     if r.status_code >= 400:
         raise RuntimeError(f"Groq {r.status_code}: {r.text[:500]}")
-    return r.json()["choices"][0]["message"]["content"]
+    try:
+        return r.json()["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError) as e:
+        raise LLMError(f"Groq malformed response: {type(e).__name__}: {e}") from e
 
 
 def chat(
