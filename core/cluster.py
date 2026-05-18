@@ -184,7 +184,10 @@ def merge_duplicates(clusters: list[Cluster], *, label_match: bool = True, centr
         # dedupe preserving order
         seen = set()
         dedup_q = [q for q in all_q if not (q in seen or seen.add(q))]
-        intents = [g.intent for g in group]
+        # weight intent by query count, не по числу кластеров (см. test_dominant_intent_after_merge)
+        intents: list[str] = []
+        for g in group:
+            intents.extend([g.intent] * len(g.queries))
         dominant = max(set(intents), key=intents.count)
         first = group[0]
         merged = Cluster(
