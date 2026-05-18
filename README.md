@@ -95,9 +95,9 @@ Decision log
   • cluster: 16 (threshold=0.20)
   • label: done
   • merge: 16 → 16
-  • gap: 0 новых vs prev, 0 убрано, 18 competitor pages
-  • seo: 10 меты, 10 брифов
-  • output: 16 rows → data/output/decisions.csv, briefs/=10
+  • gap: 0 новых vs prev, 0 убрано
+  • seo: 14 меты, 14 брифов
+  • output: 16 rows → data/output/decisions.csv, briefs/=14
 ```
 
 Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же. Тесты: `tests/test_supervisor.py` (11 кейсов: компиляция графа, оба гарда независимо, направление threshold-дельты у size_guard, threshold floor, оба end-to-end с замоканными nodes).
@@ -114,20 +114,21 @@ Decision log
 
 ## Демо-выход (на `data/seeds.yaml`, домен «диваны»)
 
-Свежий прогон LangGraph supervisor: **200 запросов → 16 групп**, полный граф 252с. Топ:
+Свежий прогон LangGraph supervisor: **200 запросов → 16 групп**, полный граф 263с (+SEO-мета и брифы, 14 LLM-вызовов после `gap`). Файлы под `data/output/` закоммичены как живой snapshot. Топ:
 
 | # | Кластер | Intent | Страница | Действие | Priority | Q |
 |---|---|---|---|---|---|---|
-| 2 | Диваны для сна | commercial | `/catalog/divany-dlya-sna/` | Создать | 0.637 | 18 |
-| 0 | Диваны в Москве | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.580 | 21 |
-| 4 | Диваны с доставкой | transactional | `/catalog/divany-s-dostavkoj/` | **Обновить** | 0.578 | 11 |
-| 1 | Кухонные диваны | transactional | `/catalog/kuhonnye-divany/` | Создать | 0.551 | 19 |
+| 1 | Диваны для сна | commercial | `/catalog/divany-dlya-sna/` | Создать | 0.636 | 17 |
+| 2 | Диваны в Москве | transactional | `/catalog/divany-v-moskve/` | Создать | 0.621 | 16 |
+| 4 | Диваны с доставкой | transactional | `/catalog/divany-s-dostavkoj/` | Создать | 0.618 | 11 |
+| 5 | Недорогие диваны в Москве | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.572 | 7 |
+| 0 | Кухонные диваны | commercial | `/catalog/kuhonnye-divany/` | Создать | 0.556 | 19 |
 | 3 | Угловые диваны | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.498 | 14 |
-| 8 | Ортопедические диваны для сна | commercial | `/catalog/ortopedicheskie-divany-dlya-sna/` | Создать | 0.494 | 2 |
 
 Видимое поведение:
 - Rule-фильтр режет до LLM: «ами мебель», «куфар», «авито», «минск», «спб», «екатеринбург», «бишкек», «беларусь» — всё **детерминированно**, без вариативности LLM
-- Существующая `/catalog/uglovye-divany/` матчится с «Угловые диваны» и «Диваны в Москве» по cosine ≥0.85 → action=Обновить
+- Существующая `/catalog/uglovye-divany/` теперь матчится с «Угловые диваны» (slug-substring) и «Недорогие диваны в Москве» (embedding ≥0.85, 2/7 запросов кластера про угловые). Регрессия «угловые → /catalog/pryamye-divany/» закрыта `_facets_conflict`-guard
+- 14 «Создать»-кластеров получили `seo_title`/`seo_h1`/`seo_description` (см. колонки в `decisions.csv`) и `briefs/{slug}-{id}.md` копирайтеру
 - queries.csv: каждый запрос виден с intent+keep+reason+cluster — аудитируемая классификация по ТЗ
 - gap-analysis: existing/shifted/new + **removed_clusters** (prev-кластеры без match → drop/архив) + competitor_gap (у конкурентов нет страницы)
 - cannibalization_risk считается как max cosine между центроидами кластеров; высокие значения снижают priority
