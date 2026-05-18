@@ -83,50 +83,49 @@ collect → clean → yield_guard ─┐
 
 **yield_guard** (`agents/graph.py:yield_guard`): если после `clean` выживаемость <30% (`YIELD_MIN_RATE`), супервайзер объединяет текущие modifiers с `BROADER_MODIFIERS` и пере-`collect`'ит — однократно (`MAX_COLLECT_RETRIES=1`).
 
-**size_guard** (`agents/graph.py:size_guard`): если после `cluster` получилось <3 кластеров (`MIN_CLUSTERS_AFTER_CLUSTER`), threshold ослабляется на `THRESHOLD_RELAX_DELTA=0.10` и кластеризация повторяется — тоже один раз.
+**size_guard** (`agents/graph.py:size_guard`): если после `cluster` получилось <3 кластеров (`MIN_CLUSTERS_AFTER_CLUSTER`), threshold **уменьшается** на `THRESHOLD_RELAX_DELTA=0.10` (с floor 0.05) — и кластеризация повторяется. Меньше threshold = больше кластеров, что и нужно: триггер «кластеров мало». Регрессия 2026-05-18: было `+ DELTA`, теперь `- DELTA`, покрыто `test_size_guard_apply_decreases_threshold`.
 
 Каждое решение пишется в `state["decisions"]`, виден в выводе CLI:
 ```
 Decision log
-  • collect: 87 запросов (modifiers=0)
-  • clean: kept 18/87
-  • supervisor: yield ниже 30% → расширил modifiers до 8
-  • collect: 142 запросов (modifiers=8)
-  • clean: kept 96/142
+  • collect: 200 запросов (modifiers=8)
+  • clean: kept 156/200
   • cluster: 16 (threshold=0.20)
   • label: done
-  • merge: 16 → 14
-  • gap: 3 новых vs prev, 21 competitor pages
-  • output: 14 rows → data/output/decisions.csv
+  • merge: 16 → 16
+  • gap: 0 новых vs prev, 0 убрано, 18 competitor pages
+  • output: 16 rows → data/output/decisions.csv
 ```
 
 Узлы (`agents/nodes.py`) — тонкие враппера над `core/*` модулями; всё ML/LLM-наполнение там же. Тесты: `tests/test_supervisor.py` (11 кейсов: компиляция графа, оба гарда независимо, направление threshold-дельты у size_guard, threshold floor, оба end-to-end с замоканными nodes).
 
-Параметры:
+Параметры `agents.cli`:
 - `--cluster-threshold 0.20` — мельче кластеры (дефолт)
 - `--max-queries 200` — кап перед LLM-чисткой
 - `--no-split` — выключить facet-split (вернуть «толстые» кластеры)
-- `--skip-competitors` — без scraping
+- `--no-merge` — выключить пост-merge дублей
+- `--skip-competitors` — без scraping конкурентов
+- `--keycollector-csv keys.csv` — импорт CSV из KeyCollector/TopVisor с volume → `score_mode` поднимается из `demo` в `mixed`
+- `--google-sheet-id <ID> --service-account-json sa.json` — экспорт результата в Google Sheet
 
 ## Демо-выход (на `data/seeds.yaml`, домен «диваны»)
 
-После split rules — **32 кластера** из 68 чистых запросов. Топ:
+Свежий прогон LangGraph supervisor: **200 запросов → 16 групп**, полный граф 252с. Топ:
 
 | # | Кластер | Intent | Страница | Действие | Priority | Q |
 |---|---|---|---|---|---|---|
-| 0 | Диваны в Москве | transactional | `/catalog/pryamye-divany/` | **Обновить** | 0.581 | 10 |
-| 1 | Диваны для сна | commercial | `/catalog/divany-dlya-sna/` | Создать | 0.576 | 8 |
-| 2 | Диваны с доставкой | transactional | `/catalog/pryamye-divany/` | **Обновить** | 0.530 | 8 |
-| 10 | Кухонные диваны с доставкой | commercial | `/catalog/kuhonnye-divany-s-dostavkoj/` | Создать | 0.485 | 2 |
-| 7 | Диваны для сна с доставкой | commercial | `/catalog/divany-dlya-sna-s-dostavkoj/` | Создать | 0.482 | 2 |
-| 15 | Ортопедические диваны для сна | commercial | `/catalog/ortopedicheskie-divany-dlya-sna/` | Создать | 0.472 | 1 |
-| 21 | Кухонные диваны с ящиком | commercial | `/catalog/kuhonnye-divany-s-yashchikom/` | Создать | 0.470 | 1 |
+| 2 | Диваны для сна | commercial | `/catalog/divany-dlya-sna/` | Создать | 0.637 | 18 |
+| 0 | Диваны в Москве | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.580 | 21 |
+| 4 | Диваны с доставкой | transactional | `/catalog/divany-s-dostavkoj/` | **Обновить** | 0.578 | 11 |
+| 1 | Кухонные диваны | transactional | `/catalog/kuhonnye-divany/` | Создать | 0.551 | 19 |
+| 3 | Угловые диваны | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.498 | 14 |
+| 8 | Ортопедические диваны для сна | commercial | `/catalog/ortopedicheskie-divany-dlya-sna/` | Создать | 0.494 | 2 |
 
 Видимое поведение:
 - Rule-фильтр режет до LLM: «ами мебель», «куфар», «авито», «минск», «спб», «екатеринбург», «бишкек», «беларусь» — всё **детерминированно**, без вариативности LLM
-- Существующая `/catalog/uglovye-divany/` НЕ матчится с «Диваны в Москве» (0.62 < 0.85), но матчится с «Угловые диваны» (>0.85) → action=Обновить
+- Существующая `/catalog/uglovye-divany/` матчится с «Угловые диваны» и «Диваны в Москве» по cosine ≥0.85 → action=Обновить
 - queries.csv: каждый запрос виден с intent+keep+reason+cluster — аудитируемая классификация по ТЗ
-- gap-analysis: 16 кластеров existing, 16 shifted, 0 new; 11 кластеров — competitor_gap (у конкурентов нет)
+- gap-analysis: existing/shifted/new + **removed_clusters** (prev-кластеры без match → drop/архив) + competitor_gap (у конкурентов нет страницы)
 - cannibalization_risk считается как max cosine между центроидами кластеров; высокие значения снижают priority
 
 ## Что real vs proxy
@@ -232,3 +231,21 @@ Minor:
 - TG-бот: deny-by-default ACL, шаг-парсер до «Шаг 6», `/upload_seeds` требует caption `confirm` + YAML-валидация
 - Typo `cannibalization_risk` → `cannibal_risk`
 - 20 unit-тестов: `tests/test_rule_filter.py`, `tests/test_priority_matching.py`, `tests/test_cluster_merge.py`
+
+### Audit #3 (manual, 2026-05-18) — закрыт в HEAD f1ea9f4
+
+Critical:
+1. ~~`size_guard` двигал threshold в WRONG direction~~ → `+ DELTA` → `- DELTA` с floor 0.05. Покрыто `test_size_guard_apply_decreases_threshold`
+2. ~~TG `/run` запускал flat `run.py`, не LangGraph~~ → бот теперь зовёт `python -m agents.cli`
+3. ~~Hero numbers в PRESENTATION не совпадали с актуальными artifacts~~ → синхронизировано: 200 → 16, 252с
+
+High / Medium:
+4. ~~`score_mode` tooltip говорил `real/proxy/derived`, код выдаёт `production/mixed/demo`~~ → копия приведена к лейблам кода
+5. ~~«Stubs swap by config» overclaim~~ → честно: нужны OAuth и credentials
+6. ~~`requests.RequestException` не оборачивался в `LLMError`~~ → fallback теперь срабатывает на сетевые ошибки
+7. ~~TG bot без child-process timeout~~ → `threading.Timer` watchdog + `STATE_LOCK` для атомарных обновлений
+8. ~~Competitor pages скрейпились дважды (collect + gap)~~ → `comp_pages` кэшируется в state, gap читает оттуда
+9. ~~`gap.py` docstring обещал «удалённые → drop/архив», не возвращал~~ → `find_removed_clusters(current, prev)`, печатается в CLI
+10. ~~`run.py` дублировал orchestration с `agents/nodes.py`~~ → УДАЛЁН, все фичи перенесены в `agents/cli.py`
+
+Tests: 20 → 31 pass (+ 11 supervisor tests).
