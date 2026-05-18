@@ -244,8 +244,8 @@ footer a:hover{border-bottom-color:var(--ink)}
       <div class="scope" data-l="ru">сжатие</div>
       <div class="scope" data-l="en">collapse</div>
       <div class="hg-num num">200 <span class="arr">→</span> 16</div>
-      <div class="hg-lab" data-l="ru">На демо-домене (мебель): 200 запросов из autosuggest/конкурентов <span class="arr">→</span> <b>16 групп</b>, по каждой из которых есть решение по странице.</div>
-      <div class="hg-lab" data-l="en">Demo domain (furniture): 200 queries from autosuggest + competitors collapse into <b>16 actionable groups</b> after intent-aware merge.</div>
+      <div class="hg-lab" data-l="ru">На демо-домене (мебель): 200 запросов из autosuggest/конкурентов <span class="arr">→</span> <b>20 групп</b>, у каждой решение по странице + реальный <span class="term" data-tip="Месячная частотность поискового запроса по данным Yandex Wordstat.">volume</span> из живого Wordstat.</div>
+      <div class="hg-lab" data-l="en">Demo domain (furniture): 200 queries from autosuggest + competitors collapse into <b>20 actionable groups</b>, each with a page decision + real <span class="term" data-tip="Monthly query frequency from Yandex Wordstat.">volume</span> from live Wordstat.</div>
     </div>
     <div>
       <div class="scope" data-l="ru">дисциплина</div>
@@ -510,8 +510,8 @@ footer a:hover{border-bottom-color:var(--ink)}
       <div>
         <div class="name" data-l="ru">демо-прогон</div>
         <div class="name" data-l="en">demo run</div>
-        <div class="val" data-l="ru">Seeds-конфиг (мебель): <b class="num">200 → 16</b> групп после склейки, <b class="num">252 с</b> на полный граф через LangGraph supervisor.</div>
-        <div class="val" data-l="en">Seeds (furniture): <b class="num">200 → 16</b> clusters after merge, <b class="num">252 s</b> end-to-end via LangGraph supervisor.</div>
+        <div class="val" data-l="ru">Seeds-конфиг (мебель): <b class="num">200 → 20</b> групп после склейки. <b class="num">105</b> запросов с реальным <code class="mono">search_volume</code> из Wordstat (CDP-парсинг живой вкладки) — <code class="mono">score_mode</code> всех групп <code class="mono">mixed</code>.</div>
+        <div class="val" data-l="en">Seeds (furniture): <b class="num">200 → 20</b> clusters after merge. <b class="num">105</b> queries with real <code class="mono">search_volume</code> from Wordstat (live-tab CDP scrape) — <code class="mono">score_mode</code> of all clusters is <code class="mono">mixed</code>.</div>
       </div>
       <div>
         <div class="name" data-l="ru">интерфейс</div>
@@ -542,8 +542,8 @@ footer a:hover{border-bottom-color:var(--ink)}
     </div>
 
     <div class="bnd">
-      <p data-l="ru"><b>Wordstat, GSC, KeyCollector — пока заглушки.</b> Поле <code class="mono">score_mode</code> в результате становится <code class="mono">mixed</code> (или <code class="mono">demo</code> когда живых сигналов вообще нет), чтобы заказчик не путал демо-сигнал с боевыми данными. Подключение через реальные API — следующий шаг, узкое место — учётные данные и OAuth.</p>
-      <p data-l="en"><b>Wordstat / GSC / KeyCollector are stubbed.</b> <code class="mono">score_mode</code> in the output becomes <code class="mono">mixed</code> (or <code class="mono">demo</code> when no live signals at all) so demo data is never mistaken for production. Real-API wiring is next; the blocker is credentials and OAuth, not code structure.</p>
+      <p data-l="ru"><b>Wordstat подключён через CDP-парсинг живого wordstat.yandex.ru</b> (Direct API упирается в регистрацию рекламодателя, что для тестового абсурдно — обошли через debug-порт браузера). 105 запросов получили реальный <code class="mono">search_volume</code>, <code class="mono">score_mode</code> для всех 20 кластеров — <code class="mono">mixed</code> (было <code class="mono">demo</code>). GSC и Ahrefs остаются stubs — для них нужны верифицированный сайт и платный ключ.</p>
+      <p data-l="en"><b>Wordstat is wired via CDP-scraping of the live wordstat.yandex.ru tab</b> (Direct API requires advertiser registration, absurd for a test task — bypassed via the browser debug port). 105 queries got real <code class="mono">search_volume</code>, <code class="mono">score_mode</code> for all 20 clusters is now <code class="mono">mixed</code> (was <code class="mono">demo</code>). GSC and Ahrefs stay as stubs — verified site and paid keys respectively.</p>
 
       <p data-l="ru"><b>Различение кластеров по поисковой выдаче (<span class="term" data-tip="Страница выдачи поисковика — Search Engine Results Page.">SERP</span>) — пока не реализовано.</b> В брифе упоминается как future. Сейчас различаем группы по embeddings и label-склейке, не по выдаче Яндекса/Google.</p>
       <p data-l="en"><b><span class="term" data-tip="Search Engine Results Page.">SERP</span>-based cluster differentiation</b> is in the brief as future work. Currently clusters are distinguished by embeddings and label merge, not by live search results.</p>

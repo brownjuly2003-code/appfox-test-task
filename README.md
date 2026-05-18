@@ -114,24 +114,44 @@ Decision log
 
 ## Демо-выход (на `data/seeds.yaml`, домен «диваны»)
 
-Свежий прогон LangGraph supervisor: **200 запросов → 16 групп**, полный граф 263с (+SEO-мета и брифы, 14 LLM-вызовов после `gap`). Файлы под `data/output/` закоммичены как живой snapshot. Топ:
+Свежий прогон LangGraph supervisor: **200 запросов → 20 групп** с реальным volume из Wordstat (см. `scripts/wordstat_batch.py`). `data/output/` закоммичен как живой snapshot. Топ-6 по priority:
 
-| # | Кластер | Intent | Страница | Действие | Priority | Q |
-|---|---|---|---|---|---|---|
-| 1 | Диваны для сна | commercial | `/catalog/divany-dlya-sna/` | Создать | 0.636 | 17 |
-| 2 | Диваны в Москве | transactional | `/catalog/divany-v-moskve/` | Создать | 0.621 | 16 |
-| 4 | Диваны с доставкой | transactional | `/catalog/divany-s-dostavkoj/` | Создать | 0.618 | 11 |
-| 5 | Недорогие диваны в Москве | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.572 | 7 |
-| 0 | Кухонные диваны | commercial | `/catalog/kuhonnye-divany/` | Создать | 0.556 | 19 |
-| 3 | Угловые диваны | transactional | `/catalog/uglovye-divany/` | **Обновить** | 0.498 | 14 |
+| # | Кластер | Intent | Страница | Действие | Priority | Mode | Q |
+|---|---|---|---|---|---|---|---|
+| 1 | Угловые диваны на кухню со спальным местом | transactional | `/catalog/uglovye-divany-na-kukhnyu-so-spalnym-mestom/` | Создать | 0.689 | mixed | 23 |
+| 5 | Диваны для сна с доставкой | transactional | `/catalog/divany-dlya-sna-s-dostavkoy/` | Создать | 0.676 | mixed | 10 |
+| 6 | Ортопедические диваны для сна | transactional | `/catalog/ortopedicheskie-divany-dlya-sna/` | Создать | 0.653 | mixed | 9 |
+| 7 | Диваны от производителя в Москве | transactional | `/catalog/divany-ot-proizvoditelya-v-moskve/` | Создать | 0.635 | mixed | 8 |
+| 2 | Диваны с доставкой | transactional | `/catalog/divany-s-dostavkoj/` | Создать | 0.621 | mixed | 19 |
+| 9 | Диваны для сна с акциями | transactional | `/catalog/divany-dlya-sna-s-aktsiyami/` | Создать | 0.606 | mixed | 7 |
 
 Видимое поведение:
+- **score_mode для всех 20 кластеров — `mixed`** (было `demo` до Wordstat-импорта): `search_volume` берётся как `real` из 105 живых Wordstat-замеров (см. `data/wordstat_volumes.csv`), остальные факторы — derived/proxy. Confidence 0.38.
 - Rule-фильтр режет до LLM: «ами мебель», «куфар», «авито», «минск», «спб», «екатеринбург», «бишкек», «беларусь» — всё **детерминированно**, без вариативности LLM
-- Существующая `/catalog/uglovye-divany/` теперь матчится с «Угловые диваны» (slug-substring) и «Недорогие диваны в Москве» (embedding ≥0.85, 2/7 запросов кластера про угловые). Регрессия «угловые → /catalog/pryamye-divany/» закрыта `_facets_conflict`-guard
-- 14 «Создать»-кластеров получили `seo_title`/`seo_h1`/`seo_description` (см. колонки в `decisions.csv`) и `briefs/{slug}-{id}.md` копирайтеру
+- Регрессия «угловые → /catalog/pryamye-divany/» закрыта `_facets_conflict`-guard через `DEFAULT_FACETS`
+- 14 «Создать»-кластеров получили `seo_title`/`seo_h1`/`seo_description` (см. колонки в `decisions.csv`) и `briefs/{slug}-{id}.md` копирайтеру (предыдущий snapshot, без SEO в этом прогоне — `--no-seo` для скорости)
 - queries.csv: каждый запрос виден с intent+keep+reason+cluster — аудитируемая классификация по ТЗ
 - gap-analysis: existing/shifted/new + **removed_clusters** (prev-кластеры без match → drop/архив) + competitor_gap (у конкурентов нет страницы)
 - cannibalization_risk считается как max cosine между центроидами кластеров; высокие значения снижают priority
+
+### Wordstat live volume (как обновить)
+
+`core/collect.py:collect_wordstat` — API через Direct требует регистрации рекламодателя. Воркэраунд для тестового — **парсинг живого wordstat.yandex.ru через CDP**:
+
+```powershell
+# 1. Залогиниться в wordstat.yandex.ru в Opera (или Chrome)
+# 2. Перезапустить с debug-портом:
+taskkill /F /IM opera.exe
+"C:\Users\<user>\AppData\Local\Programs\Opera\opera.exe" --remote-debugging-port=9222 --restore-last-session
+
+# 3. Batch на ~100-200 запросов из queries.csv (3.5с/запрос, ~6-10 мин):
+python scripts/wordstat_batch.py
+
+# 4. Pipeline с реальными volume:
+python -m agents.cli --keycollector-csv data/wordstat_volumes.csv --skip-competitors
+```
+
+Результат: `score_mode` для всех кластеров поднимается из `demo` (proxy:cluster_size) в `mixed` (real search_volume). Для `production` (≥3 real factors) нужны ещё `keyword_difficulty` + `trend_growth` — это roadmap.
 
 ## Что real vs proxy
 
@@ -202,9 +222,9 @@ Start-Process pythonw -ArgumentList "-m","bot.tg" -WorkingDirectory "D:\appfox_t
 | **SERP-проверка различия кластеров** | `core/serp.py`: top-10 Я/G через scraper или SerpAPI; jaccard URL → merge/split |
 | **Маржинальность** | `business_context.margin_map: {product_type: weight}` → множитель `business_value` |
 | **Наличие товаров** | join `cluster.slug ↔ catalog_feed.csv` (формат YML/feed) |
-| **Сезонность** | Google Trends API или Wordstat history → `trend_growth` |
+| **Сезонность** | Wordstat history (`scripts/wordstat_batch.py` с view=dynamic) → `trend_growth` real |
 | **Post-indexing verify** | `core/verify.py`: GSC API → CTR/position 14/30 дней после публикации → ratchet |
-| **Иерархия агентов через LangGraph** | `agents/graph.py`: каждый core-модуль = node; supervisor с router'ом |
+| **Wordstat через Direct API (production)** | сейчас CDP-парсинг (`scripts/wordstat_batch.py`); для prod нужен OAuth + заявка + регистрация рекламодателя |
 
 ## История ревью
 
@@ -272,3 +292,13 @@ Tests: 31 → 42 pass (+9 в `test_seo_meta.py`, +2 в `test_supervisor.py`).
 3. **Demo-артефакты синхронизированы** — `data/output/decisions.csv` (с SEO-колонками), `decisions.md` и `briefs/*.md` теперь закоммичены как демо-snapshot, чтобы презентация и репо не расходились. `raw_cleaned.json` остался в `.gitignore`.
 
 Tests: 42 → 45 pass.
+
+### v1.5 — live Wordstat volume через Opera CDP (2026-05-18)
+
+Закрыто замечание ревью «score_mode = mixed/demo, метрики в основном proxy»:
+
+1. **Реальный search_volume из Wordstat** — Direct API упирается в business-gate (заявка + регистрация рекламодателя), но wordstat.yandex.ru сам не требует ни того ни другого, нужен только залогиненный Yandex.ID в браузере. Воркэраунд: запуск Opera/Chrome c `--remote-debugging-port=9222`, подключение Playwright по CDP к живой вкладке wordstat, парсинг числа по regex `за DD.MM.YYYY – DD.MM.YYYY: NNN NNN`. Скрипт — `scripts/wordstat_batch.py`, output — `data/wordstat_volumes.csv` (формат для существующего `--keycollector-csv`).
+2. **Pipeline-прогон с реальными volume** — все 20 кластеров получили `score_mode: mixed` (было `demo`): `search_volume` помечен как `real` для запросов с попаданием в Wordstat-замер, agreggate по кластеру. Confidence поднялся с 0.25 в 0.38.
+3. **Документировано как обновлять** — в README раздел «Wordstat live volume (как обновить)» с пошаговой инструкцией по taskkill + flag + batch.
+
+Tests: 45/45 pass (без изменений — изменения только в data/output/* и docs/scripts).
